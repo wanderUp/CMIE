@@ -16,4 +16,3 @@ wte_pca = pca.fit_transform(wte.T)
 
 torch.save(wte_pca, "wte_pca_500.pt")
 
-yyy
