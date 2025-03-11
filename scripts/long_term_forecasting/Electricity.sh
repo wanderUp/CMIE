@@ -1,44 +1,34 @@
-export CUDA_VISIBLE_DEVICES=2
+
 
 seq_len=96
-model=CALF
+model=SEHS
 
-for pred_len in 96 192 336 720
+for pred_len in 96
 do
 
-python run.py \
+python test.py \
+    --gpu 3 \
+    --itr 1 \
+    --patch_size 16\
     --root_path ./datasets/electricity/ \
     --data_path electricity.csv \
+    --data custom \
     --is_training 1 \
+    --d_layers 2 \
     --task_name long_term_forecast \
     --model_id ECL_$model'_'$seq_len'_'$pred_len \
-    --data custom \
     --seq_len $seq_len \
     --label_len 0 \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 16 \
     --learning_rate 0.0005 \
-    --train_epochs 20 \
+    --train_epochs 1 \
     --d_model 768 \
     --n_heads 4 \
-    --d_ff 768 \
-    --dropout 0.3 \
-    --enc_in 7 \
-    --c_out 7 \
-    --gpt_layer 6 \
-    --itr 1 \
     --model $model \
-    --cos 1 \
-    --tmax 10 \
-    --r 8 \
-    --lora_alpha 32 \
-    --lora_dropout 0.1 \
     --patience 5 \
-    --task_loss smooth_l1 \
-    --feature_loss smooth_l1 \
     --output_loss smooth_l1
 
 echo '====================================================================================================================='
-done
 done
 

@@ -1,7 +1,8 @@
+from torch.utils.data import DataLoader
+
 from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4, PSMSegLoader, \
     MSLSegLoader, SMAPSegLoader, SMDSegLoader, SWATSegLoader, UEAloader
 from data_provider.uea import collate_fn
-from torch.utils.data import DataLoader
 
 data_dict = {
     'ETTh1': Dataset_ETT_hour,
@@ -26,10 +27,7 @@ def data_provider(args, flag, vali=False):
     if flag == 'test':
         shuffle_flag = False
         drop_last = True
-        if args.task_name == 'anomaly_detection' or args.task_name == 'classification':
-            batch_size = args.batch_size
-        else:
-            batch_size = args.batch_size
+        batch_size = args.batch_size
         freq = args.freq
     else:
         shuffle_flag = True

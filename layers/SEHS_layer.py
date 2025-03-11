@@ -3,13 +3,14 @@ import torch
 
 
 class SEHS_layer(nn.Module):
-    def __init__(self, device,num_layers,patch_size,num_heads,embed_dim):
+    def __init__(self, device,num_layers,patch_size,num_heads,embed_dim,pred_len):
         super().__init__()
         self.device = device
         self.num_layers = num_layers
         self.embed_dim = embed_dim
         self.patch_size = patch_size
         self.num_heads = num_heads
+        self.pred_len = pred_len
 
         # 创建 PatchEmbeddingWithPositionalEncoding和SeriesEmbeddingWithPositionalEncoding 实例
         self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size, embed_dim=self.embed_dim,device=self.device)
@@ -50,8 +51,9 @@ class SEHS_layer(nn.Module):
             output = self.transformer_decoder(Endogenous, Exogenous)#(num_patch,B,embed_dim)
             output=output.permute(1, 0, 2)#(B,num_patch,embed_dim)
             output=output.reshape(output.shape[0],output.shape[1]*output.shape[2])#(B,num_patch*embed_dim)
-            self.recover=nn.Linear(output.shape[1],T).to(self.device)
+            self.recover=nn.Linear(output.shape[1],self.pred_len).to(self.device)
             output=self.recover(output).unsqueeze(-1)#(B,T,1)
+            output=output * (endo_std + 1e-8) + endo_mean
             outputs_list.append(output)
         return torch.cat(outputs_list, dim=2)
 
