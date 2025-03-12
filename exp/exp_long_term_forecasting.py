@@ -87,10 +87,12 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
+                batch_x_mark = batch_x_mark.float().to(self.device)
+                batch_y_mark = batch_y_mark.float().to(self.device)
                 
-                outputs_dict = self.model(batch_x)
+                outputs = self.model(batch_x,batch_x_mark)
                 
-                loss = criterion(outputs_dict, batch_y)
+                loss = criterion(outputs, batch_y)
 
                 train_loss.append(loss.item())
 
@@ -134,25 +136,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
-
-        self.model.in_layer.eval()
-        self.model.out_layer.eval()
-        self.model.time_proj.eval()
-        self.model.text_proj.eval()
-
+        iter_count = 0
         with torch.no_grad():
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),desc="Processing_vali{0}"):
+            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),desc="Processing_vali{}".format(iter_count)):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float()
-
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
 
-                outputs = self.model(batch_x)
 
-                outputs_ensemble = outputs['outputs_time']
-                # encoder - decoder
-                outputs_ensemble = outputs_ensemble[:, -self.args.pred_len:, :]
+                outputs = self.model(batch_x,batch_x_mark)
+
+                outputs_ensemble = outputs[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :].to(self.device)
 
                 pred = outputs_ensemble.detach().cpu()
@@ -164,10 +159,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         total_loss = np.average(total_loss)
 
-        self.model.in_layer.train()
-        self.model.out_layer.train()
-        self.model.time_proj.train()
-        self.model.text_proj.train()
+
 
         return total_loss
 
@@ -193,10 +185,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
+                batch_x_mark = batch_x_mark.float().to(self.device)
+                outputs = self.model(batch_x[:, -self.args.seq_len:, :],batch_x_mark)
 
-                outputs = self.model(batch_x[:, -self.args.seq_len:, :])
-
-                outputs_ensemble = outputs['outputs_time']
+                outputs_ensemble = outputs
                 
                 outputs_ensemble = outputs_ensemble[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :]
@@ -228,13 +220,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
+        print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae,rmse,mape,mspe))
         f = open("result_long_term_forecast.txt", 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
         f.write('\n')
         f.write('\n')
         f.close()
+
+        f=open(os.path.join('./checkpoints/' + setting, 'result.txt'),'w')
+        f.write('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae,rmse,mape,mspe))
+        f.close()
+
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path + 'pred.npy', preds)

@@ -18,7 +18,6 @@ class SEHS_layer(nn.Module):
 
         decoder_layer = nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_layers)
-
         self.to(self.device)
 
 
@@ -29,15 +28,6 @@ class SEHS_layer(nn.Module):
         for i in range(N):
             Endogenous=x[:,:,i].unsqueeze(-1)
             Exogenous=torch.cat((x[:, :, :i], x[:, :, i+1:]), dim=2)
-
-            # 求 Endogenous 的均值和标准差（按 dim=1 进行）
-            endo_mean = Endogenous.mean(dim=1, keepdim=True)
-            endo_std = Endogenous.std(dim=1, keepdim=True)
-            Endogenous= (Endogenous - endo_mean) / (endo_std + 1e-8)
-            # 求 Exogenous 的均值和标准差（按 dim=1 进行）
-            exo_mean = Exogenous.mean(dim=1, keepdim=True)
-            exo_std = Exogenous.std(dim=1, keepdim=True)
-            Exogenous= (Exogenous - exo_mean) / (exo_std + 1e-8)
 
 
             Endogenous=self.patch_embed_pos(Endogenous)#(B, num_patches, embed_dim)
@@ -53,15 +43,9 @@ class SEHS_layer(nn.Module):
             output=output.reshape(output.shape[0],output.shape[1]*output.shape[2])#(B,num_patch*embed_dim)
             self.recover=nn.Linear(output.shape[1],self.pred_len).to(self.device)
             output=self.recover(output).unsqueeze(-1)#(B,T,1)
-            output=output * (endo_std + 1e-8) + endo_mean
+
             outputs_list.append(output)
         return torch.cat(outputs_list, dim=2)
-
-
-
-
-
-
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):
     def __init__(self, patch_size, embed_dim,device):
