@@ -90,7 +90,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
                 
-                outputs = self.model(batch_x,batch_x_mark)
+                outputs = self.model(batch_x)
                 
                 loss = criterion(outputs, batch_y)
 
@@ -145,7 +145,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_y_mark = batch_y_mark.float().to(self.device)
 
 
-                outputs = self.model(batch_x,batch_x_mark)
+                outputs = self.model(batch_x)
 
                 outputs_ensemble = outputs[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :].to(self.device)
@@ -186,7 +186,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
-                outputs = self.model(batch_x[:, -self.args.seq_len:, :],batch_x_mark)
+                outputs = self.model(batch_x[:, -self.args.seq_len:, :])
 
                 outputs_ensemble = outputs
                 

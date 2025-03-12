@@ -7,7 +7,6 @@ from layers.SEHS_layer import SEHS_layer
 class Model(nn.Module):
     def __init__(self, configs, device):
         super(Model, self).__init__()
-        self.marklinear = None
         self.device = device
         self.pred_len = configs.pred_len
         self.d_model = configs.d_model
@@ -20,11 +19,8 @@ class Model(nn.Module):
 
         self.to(self.device)
 
-    def forecast(self, x,mark):
+    def forecast(self, x):
 
-        self.marklinear = nn.Linear(mark.shape[-1], x.shape[-1]).to(self.device)
-        mark = self.marklinear(mark)
-        x+=mark
         # 求 x 的均值和标准差（按 dim=1 进行）
         endo_mean = x.mean(dim=1, keepdim=True)
         endo_std = x.std(dim=1, keepdim=True)

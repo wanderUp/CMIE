@@ -39,6 +39,8 @@ class SEHS_layer(nn.Module):
 
 
             output = self.transformer_decoder(Endogenous, Exogenous)#(num_patch,B,embed_dim)
+
+
             output=output.permute(1, 0, 2)#(B,num_patch,embed_dim)
             output=output.reshape(output.shape[0],output.shape[1]*output.shape[2])#(B,num_patch*embed_dim)
             self.recover=nn.Linear(output.shape[1],self.pred_len).to(self.device)
