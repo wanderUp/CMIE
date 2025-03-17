@@ -1,72 +1,73 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.fft
-from layers.Conv_Blocks import Inception_Block_V1
-def FFT_for_Period(x, k=2):
-    # [B, T, C]
-    xf = torch.fft.rfft(x, dim=1)
-    # find period by amplitudes
-    frequency_list = abs(xf).mean(0).mean(-1)
-    frequency_list[0] = 0
-    _, top_list = torch.topk(frequency_list, k)
-    top_list = top_list.detach().cpu().numpy()
-    period = x.shape[1] // top_list
-    return period, abs(xf).mean(-1)[:, top_list]
 
-class TimesNet(nn.Module):
-    def __init__(self, configs, device,word_embedding):
-        super().__init__()
-        self.configs = configs
-        self.device = device
-        self.seq_len = configs.seq_len
-        self.k = 2
-        self.word_embedding = word_embedding.T
+
+class TimesBlock(nn.Module):
+    def __init__(self, in_channels, periods):
+        super(TimesBlock, self).__init__()
+        self.periods = periods  # 不同周期窗口
+        self.conv_layers = nn.ModuleList([
+            nn.Conv2d(in_channels, in_channels, kernel_size=(1, 1)) for _ in range(len(periods))
+        ])
+        self.projection = nn.Conv1d(in_channels, in_channels, kernel_size=1)
 
     def forward(self, x):
-        B, T, N = x.size()
-        # 处理word_embedding
-        if self.word_embedding.ndim == 2:
-            self.word_embedding = self.word_embedding.repeat(B, 1, 1)
-        elif self.word_embedding.shape[0] != B:
-            self.word_embedding = self.word_embedding[0].repeat(B, 1, 1) #word_embedding shape: 100,500,768
-        self.n = N
-        self.out_channel = 32
-        self.conv = nn.Sequential(
-            Inception_Block_V1(self.n, self.out_channel,
-                               num_kernels=self.configs.num_kernels),
-            nn.GELU(),
-            Inception_Block_V1(self.out_channel, self.n,
-                               num_kernels=self.configs.num_kernels)
-        ).to(self.device)
-        period_list, period_weight = FFT_for_Period(x, self.k)
+        # x: (batch, seq_len, channels)
+        B, L, C = x.shape
+        x = x.permute(0, 2, 1)  # (batch, channels, seq_len)
+        res = x
 
-        res = []
-        for i in range(self.k):
-            period = period_list[i]
-            # padding
-            if (self.seq_len) % period != 0:
-                length = (
-                                 ((self.seq_len) // period) + 1) * period
-                padding = torch.zeros([x.shape[0], (length - (self.seq_len)), x.shape[2]]).to(x.device)
-                out = torch.cat([x, padding], dim=1)
+        period_outs = []
+        for idx, period in enumerate(self.periods):
+            # 补齐以适配周期
+            pad_len = (period - L % period) % period
+            if pad_len > 0:
+                x_pad = torch.cat([x, x[:, :, -pad_len:]], dim=-1)  # (B, C, L + pad_len)
             else:
-                length = (self.seq_len)
-                out = x
-            # reshape
-            out = out.reshape(B, length // period, period,
-                                N).permute(0, 3, 1, 2).contiguous()
-            # 2D conv: from 1d Variation to 2d Variation
-            out = self.conv(out)
-            # reshape back
-            out = out.permute(0, 2, 3, 1).reshape(B, -1, N)
-            res.append(out[:, :(self.seq_len), :])
-        res = torch.stack(res, dim=-1)
-        # adaptive aggregation
-        period_weight = F.softmax(period_weight, dim=1)
-        period_weight = period_weight.unsqueeze(
-            1).unsqueeze(1).repeat(1, T, N, 1)
-        res = torch.sum(res * period_weight, -1)
-        # residual connection
-        res = res + x
-        return res
+                x_pad = x
+
+            # 重排，分块
+            B_p, C_p, L_p = x_pad.shape
+            new_len = L_p // period
+            x_period = x_pad.reshape(B_p, C_p, new_len, period)
+
+            # 2D 卷积（沿着周期卷积）
+            out = self.conv_layers[idx](x_period)
+            out = out.reshape(B, C, -1)[:, :, :L]  # 截断到原始长度
+            period_outs.append(out)
+
+        # 聚合不同周期
+        out = sum(period_outs) / len(period_outs)
+        out = out + res
+
+        # 投影
+        out = self.projection(out)
+        out = out.permute(0, 2, 1)  # (B, L, C)
+        return out
+
+
+class TimesNet(nn.Module):
+    def __init__(self, in_channels, model_dim, num_blocks=3):
+        super(TimesNet, self).__init__()
+        self.input_projection = nn.Linear(in_channels, model_dim)
+
+        # 每层周期
+        self.blocks = nn.ModuleList([
+            TimesBlock(model_dim, periods=[2 ** (i + 1), 2 ** (i + 2)]) for i in range(num_blocks)
+        ])
+        self.norm = nn.LayerNorm(model_dim)
+
+    def forward(self, x):
+        """
+        x: (batch, seq_len, in_channels)
+        """
+        # 投影到模型维度
+        x = self.input_projection(x)
+
+        # 逐层通过 TimesBlock
+        for block in self.blocks:
+            x = block(x)
+
+        # 最后正则化
+        x = self.norm(x)
+        return x  # (batch, seq_len, model_dim)

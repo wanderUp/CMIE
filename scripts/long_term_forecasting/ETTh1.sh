@@ -9,10 +9,13 @@ python run.py \
     --model $model \
     --patch_size 16 \
     --d_layers 2 \
+    --llm_layers 16 \
+    --top_k 5 \
+    --dropout 0.3 \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 512 \
+    --batch_size 16 \
     --d_model 256 \
     --n_heads 4 \
     --output_loss smooth_l1 \
