@@ -21,7 +21,7 @@ python run.py \
     --itr 1 \
     --train_epochs 1 \
     --patience 5 \
-    --data custom \
+    --data ECL \
     --model_id ECL_$model'_'$seq_len'_'$pred_len \
     --task_name long_term_forecast \
     --root_path ./datasets/electricity/ \

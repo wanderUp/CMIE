@@ -67,8 +67,10 @@ class PatchEmbeddingWithPositionalEncoding(nn.Module):
     def forward(self, x):
         B, T, C = x.shape
         num_patches = T // self.patch_size
-        self.proj = nn.Linear(self.patch_size * C, self.embed_dim).to(self.device)  # 线性映射
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, self.embed_dim)).to(self.device)  # 可学习的位置编码
+        if self.proj is None:
+            self.proj = nn.Linear(self.patch_size * C, self.embed_dim).to(self.device)  # 线性映射
+        if self.pos_embed is None:
+            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, self.embed_dim)).to(self.device)  # 可学习的位置编码
         # 切分时间步为多个 patches
         x = x.unfold(1, self.patch_size, self.patch_size)
         x = x.contiguous().view(B, num_patches, self.patch_size * C)
@@ -98,8 +100,10 @@ class SeriesEmbeddingWithPositionalEncoding(nn.Module):
 
     def forward(self, x):
         B, T, N = x.shape  # 输入的形状为 (B, T, N)
-        self.proj = nn.Linear(N, self.embed_dim).to(self.device)  # 线性映射，将每个时间步的 N 个特征映射到 embed_dim 空间
-        self.pos_embed = nn.Parameter(torch.zeros(1, T, self.embed_dim)).to(self.device)  # 可学习的位置编码
+        if self.proj is None:
+            self.proj = nn.Linear(N, self.embed_dim).to(self.device)  # 线性映射，将每个时间步的 N 个特征映射到 embed_dim 空间
+        if self.pos_embed is None:
+            self.pos_embed = nn.Parameter(torch.zeros(1, T, self.embed_dim)).to(self.device)  # 可学习的位置编码
         x = self.proj(x)  # 通过线性层进行嵌入，输出的形状为 (B, T, embed_dim)
         x = x + self.pos_embed  # 添加位置编码，结果的形状是 (B, T, embed_dim)
         return x#(B, T, embed_dim)

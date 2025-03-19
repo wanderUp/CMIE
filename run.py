@@ -53,7 +53,14 @@ if __name__ == '__main__':
     # anomaly detection task
     parser.add_argument('--anomaly_ratio', type=float, default=0.25, help='prior anomaly ratio (%)')
 
+    # lora
+    parser.add_argument('--r', type=int, default=8)
+    parser.add_argument('--lora_alpha', type=int, default=32)
+    parser.add_argument('--lora_dropout', type=float, default=0.1)
+
     # model define
+    parser.add_argument("--gpt_layers",type=int,default=6,help="number of GPT layers")
+    parser.add_argument("--num_blocks", type=int, default=3, help="TimesNet: number of blocks")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
     parser.add_argument("--patch_size", type=int, default=16, help="patch size")
     parser.add_argument('--c_out', type=int, default=7, help='output size')
@@ -124,6 +131,14 @@ if __name__ == '__main__':
     print_args(args)
 
     args.content=load_content(args)
+    if "ETT" in args.data:
+        args.N=7
+    elif "weather" in args.data_path:
+        args.N=21
+    elif "traffic" in args.data_path:
+        args.N=862
+
+
 
     if args.task_name == 'long_term_forecast':
         Exp = Exp_Long_Term_Forecast

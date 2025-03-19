@@ -11,11 +11,16 @@ python run.py \
     --d_layers 2 \
     --llm_layers 16 \
     --top_k 5 \
+    --r 8 \
+    --lora_alpha 32 \
+    --lora_dropout 0.1 \
+    --num_blocks 3 \
     --dropout 0.3 \
+    --gpt_layers 6 \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 16 \
+    --batch_size 32 \
     --d_model 256 \
     --n_heads 4 \
     --output_loss smooth_l1 \
