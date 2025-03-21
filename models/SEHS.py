@@ -27,41 +27,6 @@ class Model(nn.Module):
         self.layers=SEHS_layer(device=device, embed_dim=self.d_model, num_layers=self.num_layers,
                                     num_heads=self.num_heads, patch_size=self.patch_size,pred_len=self.pred_len)
 
-        # self.gpt2_config = GPT2Config.from_pretrained('gpt2')
-        # self.gpt2_config.num_hidden_layers = configs.llm_layers
-        # self.gpt2_config.output_attentions = True
-        # self.gpt2_config.output_hidden_states = True
-        # try:
-        #     self.llm_model = GPT2Model.from_pretrained(
-        #         'gpt2',
-        #         trust_remote_code=True,
-        #         local_files_only=True,
-        #         config=self.gpt2_config,
-        #     )
-        # except EnvironmentError:  # downloads model from HF is not already done
-        #     print("Local model files not found. Attempting to download...")
-        #     self.llm_model = GPT2Model.from_pretrained(
-        #         'gpt2',
-        #         trust_remote_code=True,
-        #         local_files_only=False,
-        #         config=self.gpt2_config,
-        #     )
-        #
-        # try:
-        #     self.tokenizer = GPT2Tokenizer.from_pretrained(
-        #         'gpt2',
-        #         trust_remote_code=True,
-        #         local_files_only=True
-        #     )
-        # except EnvironmentError:  # downloads the tokenizer from HF if not already done
-        #     print("Local tokenizer files not found. Atempting to download them..")
-        #     self.tokenizer = GPT2Tokenizer.from_pretrained(
-        #         'openai-community/gpt2',
-        #         trust_remote_code=True,
-        #         local_files_only=False
-        #     )
-        # self.llm_model.h = self.llm_model.h[:configs.gpt_layers]
-
 
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
@@ -88,7 +53,7 @@ class Model(nn.Module):
         self.AlignDim = nn.Linear(self.d_model, self.model_dim)
         self.output_projection = FlattenHead(head_nf, self.pred_len,
                                              head_dropout=configs.dropout)
-        self.prediction = nn.Linear(self.model_dim, self.N)
+        self.prediction = nn.Linear(self.model_dim*2, self.N)
         self.to(self.device)
 
     def forecast(self, x):
@@ -133,16 +98,18 @@ class Model(nn.Module):
 
         x=torch.cat((prompt_embeddings,x),dim=1)
 
-
-        #dec_out = self.llm_model(inputs_embeds=x).last_hidden_state
         dec_out,_ = self.llm_model(inputs_embeds=x)
-
-
+        prompt_out = dec_out[:,:prompt_token,:]#(B,prompt_token,dim)
         dec_out = dec_out[:,prompt_token:,:]#(B,num_patch*N,dim)
 
-        dec_out = dec_out.reshape((B, N, -1, self.model_dim))#(B,N,num_patch,dim)
-        dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim,N,num_patch)
-        dec_out = self.output_projection(dec_out)#(B,dim,pre_len)
+        prompt_out = prompt_out.mean(dim=1, keepdim=True)
+
+        dec_out = torch.cat((dec_out, prompt_out.expand(-1, dec_out.shape[1], -1)), dim=-1)  # (B,num_patch*N,dim*2)
+
+        dec_out = dec_out.reshape((B, N, -1, self.model_dim*2))#(B,N,num_patch,dim*2)
+        dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim*2,N,num_patch)
+        dec_out = self.output_projection(dec_out)#(B,dim*2,pre_len)
+
         dec_out = dec_out.permute(0, 2, 1).contiguous()
         dec_out=self.prediction(dec_out)
 
