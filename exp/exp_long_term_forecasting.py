@@ -36,8 +36,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' in n], "lr": 1e-4},
             {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' not in n], "lr": self.args.learning_rate}
         ]
-        model_optim = optim.Adam([param_dict[1]], lr=self.args.learning_rate)
-        loss_optim = optim.Adam([param_dict[0]], lr=self.args.learning_rate)
+        model_optim = optim.Adam([param_dict[1]], lr=self.args.learning_rate, weight_decay=0.01)
+        loss_optim = optim.Adam([param_dict[0]], lr=self.args.learning_rate, weight_decay=0.01)
 
         return model_optim, loss_optim
 
@@ -137,6 +137,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
         iter_count = 0
+        self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),desc="Processing_vali{}".format(iter_count)):
                 batch_x = batch_x.float().to(self.device)

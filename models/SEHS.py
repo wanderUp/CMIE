@@ -51,9 +51,9 @@ class Model(nn.Module):
         self.model_dim = self.llm_model.config.hidden_size
         head_nf = (self.pred_len // self.patch_size) * self.N
         self.AlignDim = nn.Linear(self.d_model, self.model_dim)
-        self.output_projection = FlattenHead(head_nf, self.pred_len,
+        self.output_projection = FlattenHead(head_nf*2, self.pred_len,
                                              head_dropout=configs.dropout)
-        self.prediction = nn.Linear(self.model_dim*2, self.N)
+        self.prediction = nn.Linear(self.model_dim, self.N)
         self.to(self.device)
 
     def forecast(self, x):
@@ -89,26 +89,32 @@ class Model(nn.Module):
             prompt.append(prompt_)
 
 
-        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512).input_ids
+        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=2048).input_ids
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
         prompt_embeddings=prompt_embeddings.reshape(B , -1, self.model_dim)
+
+
         prompt_token=prompt_embeddings.shape[1]
+
         x = self.layers(x)
         x=self.AlignDim(x);
 
+        prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
+            query=x,
+            key=prompt_embeddings,
+            value=prompt_embeddings
+        )
         x=torch.cat((prompt_embeddings,x),dim=1)
 
         dec_out,_ = self.llm_model(inputs_embeds=x)
         prompt_out = dec_out[:,:prompt_token,:]#(B,prompt_token,dim)
-        dec_out = dec_out[:,prompt_token:,:]#(B,num_patch*N,dim)
+        #dec_out = dec_out[:,prompt_token:,:]#(B,num_patch*N,dim)
 
-        prompt_out = prompt_out.mean(dim=1, keepdim=True)
 
-        dec_out = torch.cat((dec_out, prompt_out.expand(-1, dec_out.shape[1], -1)), dim=-1)  # (B,num_patch*N,dim*2)
 
-        dec_out = dec_out.reshape((B, N, -1, self.model_dim*2))#(B,N,num_patch,dim*2)
-        dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim*2,N,num_patch)
-        dec_out = self.output_projection(dec_out)#(B,dim*2,pre_len)
+        dec_out = dec_out.reshape((B, N, -1, self.model_dim))#(B,N,num_patch,dim)
+        dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim,N,num_patch)
+        dec_out = self.output_projection(dec_out)#(B,dim,pre_len)
 
         dec_out = dec_out.permute(0, 2, 1).contiguous()
         dec_out=self.prediction(dec_out)
