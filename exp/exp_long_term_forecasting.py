@@ -32,14 +32,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
-        param_dict = [
-            {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' in n], "lr": 1e-4},
-            {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' not in n], "lr": self.args.learning_rate}
-        ]
-        model_optim = optim.Adam([param_dict[1]], lr=self.args.learning_rate, weight_decay=0.01)
-        loss_optim = optim.Adam([param_dict[0]], lr=self.args.learning_rate, weight_decay=0.01)
 
-        return model_optim, loss_optim
+        model_optim =optim.AdamW(self.model.parameters(), lr=5e-5, weight_decay=0.1)
+
+        return model_optim
 
     def _select_criterion(self):
         if self.args.model=="CALF":
@@ -69,7 +65,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
-        model_optim, loss_optim = self._select_optimizer()
+        model_optim= self._select_optimizer()
         criterion = self._select_criterion()
         
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(model_optim, T_max=self.args.tmax, eta_min=1e-8)
@@ -83,7 +79,6 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader),desc="Processing_train{0}".format(iter_count)):
                 iter_count += 1
                 model_optim.zero_grad()
-                loss_optim.zero_grad()
 
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
@@ -106,7 +101,6 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 loss.backward()
                 model_optim.step()
-                loss_optim.step()
 
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)

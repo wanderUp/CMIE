@@ -49,7 +49,7 @@ class Model(nn.Module):
 
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model_dim = self.llm_model.config.hidden_size
-        head_nf = (self.pred_len // self.patch_size) * self.N
+        head_nf = (self.seq_len // self.patch_size) * self.N
         self.AlignDim = nn.Linear(self.d_model, self.model_dim)
         self.output_projection = FlattenHead(head_nf*2, self.pred_len,
                                              head_dropout=configs.dropout)
@@ -89,7 +89,7 @@ class Model(nn.Module):
             prompt.append(prompt_)
 
 
-        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=2048).input_ids
+        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512).input_ids
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
         prompt_embeddings=prompt_embeddings.reshape(B , -1, self.model_dim)
 
@@ -166,6 +166,7 @@ class FlattenHead(nn.Module):
         self.dropout = nn.Dropout(head_dropout)
 
     def forward(self, x):
+
         x = self.flatten(x)
         x = self.linear(x)
         x = self.dropout(x)
