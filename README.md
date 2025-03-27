@@ -1,0 +1,1 @@
+完成了promot和时序数据的拼接，但是prompt_embed长度过长，超出gpt2的长度上线1024
