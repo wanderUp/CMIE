@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class SEHS_layer(nn.Module):
-    def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len):
+    def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len,limit_len):
         super().__init__()
         self.device = device
         self.num_layers = num_layers
@@ -11,13 +11,14 @@ class SEHS_layer(nn.Module):
         self.patch_size = patch_size
         self.num_heads = num_heads
         self.pred_len = pred_len
-
+        self.limit_len=limit_len
         # 创建 PatchEmbeddingWithPositionalEncoding和SeriesEmbeddingWithPositionalEncoding 实例
         self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size,                                                                  embed_dim=self.embed_dim, device=self.device)
         self.series_embed_pos = SeriesEmbeddingWithPositionalEncoding(embed_dim=self.embed_dim, device=self.device)
 
         decoder_layer = nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_layers)
+        self.AlignLinear=nn.LazyLinear(self.limit_len)
         self.to(self.device)
 
 
@@ -41,10 +42,14 @@ class SEHS_layer(nn.Module):
             output = self.transformer_decoder(Endogenous, Exogenous)  # (num_patch,B,embed_dim)
 
 
-            output = output.permute(1, 0, 2)  # (B,num_patch,embed_dim)
+            output = output.permute(1, 2, 0)  # (B,embed_dim,num_patch)
 
             outputs_list.append(output)
-        return torch.cat(outputs_list, dim=1)  # (B,num_patch*N,embed_dim)
+
+        output=torch.cat(outputs_list, dim=2)# (B,embed_dim,num_patch*N)
+        output=self.AlignLinear(output)
+        output=output.permute(0, 2, 1)
+        return   output
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):
     def __init__(self, patch_size, embed_dim, device):

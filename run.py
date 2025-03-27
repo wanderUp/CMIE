@@ -59,6 +59,7 @@ if __name__ == '__main__':
 
     # model define
     parser.add_argument("--gpt_layers",type=int,default=6,help="number of GPT layers")
+    parser.add_argument("--limit_len",type=int,default=512,help="limit the length of input data")
     parser.add_argument("--num_blocks", type=int, default=3, help="TimesNet: number of blocks")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
     parser.add_argument("--patch_size", type=int, default=16, help="patch size")

@@ -24,11 +24,23 @@ class SEHSLoss(nn.Module):
         self.output_loss = loss_dict[output_loss]
         self.task_name = task_name
 
+
     def forward(self, outputs, batch_y, in_sample=None, freq_map=None, batch_y_mark=None):
 
+        output=outputs["output"]
+        intermidiate_time=outputs["intermidiate_time"]
+        intermidiate_prompt=outputs["intermidiate_prompt"]
+        batch_y = batch_y.to(output.device)
 
-        batch_y = batch_y.to(outputs.device)
+        feature_loss = sum(
+            [
+                (0.8 ** idx) * self.output_loss(feat_time, feat_text)
+                for idx, (feat_time, feat_text) in enumerate(
+                zip(intermidiate_time[::-1], intermidiate_prompt[::-1])
+            )
+            ]
+        )
 
-        loss = self.output_loss(outputs, batch_y)
+        loss = self.output_loss(output, batch_y)+feature_loss
 
         return loss
