@@ -87,6 +87,7 @@ if __name__ == '__main__':
 
     # GPU
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
+    parser.add_argument("--gpt_layers", type=int, default=1, help="gpt layers")
     parser.add_argument('--gpu', type=int, default=0, help='gpu')
     parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
     parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
@@ -119,6 +120,13 @@ if __name__ == '__main__':
 
     print('Args in experiment:')
     print_args(args)
+
+    if "ETT" in args.data:
+        args.N = 7
+    elif "weather" in args.data:
+        args.N = 21
+    elif "traffic" in args.data:
+        args.N = 862
 
     if args.task_name == 'long_term_forecast':
         Exp = Exp_Long_Term_Forecast

@@ -27,6 +27,7 @@ class SEHSLoss(nn.Module):
     def forward(self, outputs, batch_y, in_sample=None, freq_map=None, batch_y_mark=None):
 
 
+
         batch_y = batch_y.to(outputs.device)
 
         loss = self.output_loss(outputs, batch_y)

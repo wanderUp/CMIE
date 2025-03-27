@@ -39,15 +39,17 @@ class SEHS_layer(nn.Module):
 
 
             output = self.transformer_decoder(Endogenous, Exogenous)#(num_patch,B,embed_dim)
+            output+=Endogenous
 
+            output=output.permute(1, 2, 0)#(B,embed_dim,num_patch)
+            output=output.unsqueeze(-1)
 
-            output=output.permute(1, 0, 2)#(B,num_patch,embed_dim)
-            output=output.reshape(output.shape[0],output.shape[1]*output.shape[2])#(B,num_patch*embed_dim)
-            self.recover=nn.Linear(output.shape[1],self.pred_len).to(self.device)
-            output=self.recover(output).unsqueeze(-1)#(B,T,1)
+            # output=output.reshape(output.shape[0],output.shape[1]*output.shape[2])#(B,num_patch*embed_dim)
+            # self.recover=nn.Linear(output.shape[1],self.pred_len).to(self.device)
+            # output=self.recover(output).unsqueeze(-1)#(B,T,1)
 
             outputs_list.append(output)
-        return torch.cat(outputs_list, dim=2)
+        return torch.cat(outputs_list, dim=3)
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):
     def __init__(self, patch_size, embed_dim,device):

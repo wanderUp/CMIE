@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="xcy2024@10.12.54.24:22 key" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="xcy2024@10.12.54.11:22 key">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/ssd-data2/xcy2024/codes_dir/essayTest" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="xcy2024@10.12.54.24:22 key">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/data/xcy2024/codes_dirs/essayTest" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
