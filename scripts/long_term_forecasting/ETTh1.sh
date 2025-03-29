@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 seq_len=96
 model=SEHS
@@ -8,7 +8,7 @@ do
 python run.py \
     --model $model \
     --patch_size 16 \
-    --d_layers 2 \
+    --d_layers 1 \
     --top_k 5 \
     --r 8 \
     --lora_alpha 16 \
@@ -19,7 +19,7 @@ python run.py \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 256 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss smooth_l1 \

@@ -47,11 +47,12 @@ class Model(nn.Module):
 
 
 
+
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model_dim = self.llm_model.config.hidden_size
         head_nf = (self.seq_len // self.patch_size) * self.N
         self.AlignDim = nn.Linear(self.d_model, self.model_dim)
-        self.output_projection = FlattenHead(head_nf*2, self.pred_len,
+        self.output_projection = FlattenHead(head_nf, self.pred_len,
                                              head_dropout=configs.dropout)
         self.prediction = nn.Linear(self.model_dim, self.N)
         self.to(self.device)
@@ -93,9 +94,6 @@ class Model(nn.Module):
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
         prompt_embeddings=prompt_embeddings.reshape(B , -1, self.model_dim)
 
-
-        prompt_token=prompt_embeddings.shape[1]
-
         x = self.layers(x)
         x=self.AlignDim(x);
 
@@ -104,11 +102,13 @@ class Model(nn.Module):
             key=prompt_embeddings,
             value=prompt_embeddings
         )
+
+        prompt_token = prompt_embeddings.shape[1]
         x=torch.cat((prompt_embeddings,x),dim=1)
 
         dec_out,_ = self.llm_model(inputs_embeds=x)
         prompt_out = dec_out[:,:prompt_token,:]#(B,prompt_token,dim)
-        #dec_out = dec_out[:,prompt_token:,:]#(B,num_patch*N,dim)
+        dec_out = dec_out[:,prompt_token:,:]#(B,num_patch*N,dim)
 
 
 

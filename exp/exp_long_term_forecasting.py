@@ -33,7 +33,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
     def _select_optimizer(self):
 
-        model_optim =optim.AdamW(self.model.parameters(), lr=5e-5, weight_decay=0.1)
+        model_optim =optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=0.1)
 
         return model_optim
 
@@ -80,6 +80,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 iter_count += 1
                 model_optim.zero_grad()
 
+                epsilon = 0.2  # 噪声强度
+                data_range=batch_x.max()-batch_x.min()
+                noise = epsilon * (torch.rand_like(batch_x) - 0.5)*data_range
+                batch_x = batch_x + noise
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
