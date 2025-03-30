@@ -1,1 +1,1 @@
-添加了timesnet获取周信息，运行结果vali loss最低有0.845
+去除了prompt的atten，数据量增大了，但是最终结vali loss最低有0.776

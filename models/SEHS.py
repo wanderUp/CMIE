@@ -97,11 +97,11 @@ class Model(nn.Module):
         x = self.layers(x)
         x=self.AlignDim(x);
 
-        prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
-            query=x,
-            key=prompt_embeddings,
-            value=prompt_embeddings
-        )
+        # prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
+        #     query=x,
+        #     key=prompt_embeddings,
+        #     value=prompt_embeddings
+        # )
 
         prompt_token = prompt_embeddings.shape[1]
         x=torch.cat((prompt_embeddings,x),dim=1)
