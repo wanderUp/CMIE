@@ -135,10 +135,12 @@ if __name__ == '__main__':
     args.content=load_content(args)
     if "ETT" in args.data:
         args.N=7
-    elif "weather" in args.data:
+    elif "Weather" in args.data:
         args.N=21
-    elif "traffic" in args.data:
+    elif "Traffic" in args.data:
         args.N=862
+    elif "ECL" in args.data:
+        args.N=321
 
 
 

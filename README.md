@@ -1,1 +1,1 @@
-去除了prompt的atten，数据量增大了，但是最终结vali loss最低有0.776
+移除了timesnet，prompt长度可以作为参数传入，其余部分作为时序数据的长度，与CALF论文中的sota大约有0.04的差距

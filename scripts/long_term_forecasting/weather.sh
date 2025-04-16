@@ -1,42 +1,52 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=5
 
 seq_len=96
-model=CALF
+model=SEHS
 
-
-for pred_len in 96 192 336 720
+for pred_len in 96
 do
-
+for promot in 256 512 700 800
+do
+for drop in 0.1 0.2 0.3
+do
+for epsilon in 0.1 0.2 0.3
+do
+for decay in 0.1 0.3 0.5
+do
 python run.py \
-    --root_path ./datasets/weather/ \
-    --data_path weather.csv \
-    --is_training 1 \
-    --task_name long_term_forecast \
-    --model_id weather_$model'_'$seq_len'_'$pred_len \
-    --data custom \
-    --seq_len $seq_len \
-    --label_len 0 \
-    --pred_len $pred_len \
-    --batch_size 64 \
-    --learning_rate 0.0005 \
-    --train_epochs 100 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --dropout 0.3 \
-    --enc_in 7 \
-    --c_out 7 \
-    --lradj type3 \
-    --gpt_layer 6 \
-    --itr 1 \
     --model $model \
-    --r 8 \
+    --patch_size 16 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --prompt_length $promot \
+    --num_blocks 3 \
+    --gpt_layers 2 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 32 \
+    --d_model 768 \
+    --n_heads 4 \
+    --output_loss smooth_l1 \
+    --learning_rate 0.0002 \
+    --itr 1 \
+    --train_epochs 100 \
     --patience 5 \
-    --task_loss smooth_l1 \
-    --feature_loss smooth_l1 \
-    --output_loss smooth_l1
+    --data Weather \
+    --model_id Weather_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
+    --root_path ./datasets/ETT-small/ \
+    --data_path Weather.csv \
 
 echo '====================================================================================================================='
+done
+done
+done
+done
 done

@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 seq_len=96
 model=SEHS
 
-for pred_len in 192
+for pred_len in 336
 do
 for promot in 700 800
 do
@@ -34,7 +34,7 @@ python run.py \
     --d_model 768 \
     --n_heads 4 \
     --output_loss smooth_l1 \
-    --learning_rate 0.0005 \
+    --learning_rate 0.0001 \
     --itr 1 \
     --train_epochs 100 \
     --patience 5 \
