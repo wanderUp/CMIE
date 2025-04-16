@@ -57,8 +57,12 @@ if __name__ == '__main__':
     parser.add_argument('--lora_alpha', type=int, default=32)
     parser.add_argument('--lora_dropout', type=float, default=0.1)
 
+    parser.add_argument("--epsilon", type=float, default=0.1,help="noise")
+    parser.add_argument("--weight_decay", type=float, default=0.1, help="weight decay")
+
     # model define
     parser.add_argument("--gpt_layers",type=int,default=6,help="number of GPT layers")
+    parser.add_argument("--prompt_length", type=int, default=512, help="max length of prompt")
     parser.add_argument("--num_blocks", type=int, default=3, help="TimesNet: number of blocks")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
     parser.add_argument("--patch_size", type=int, default=16, help="patch size")
@@ -155,15 +159,22 @@ if __name__ == '__main__':
         for ii in range(args.itr):
             # setting record of experiments
             exp = Exp(args)  # set experiments
-            setting = '{}_{}_{}_seq{}_pred{}_dmodel{}_nheads{}_dlayers{}_ii{}'.format(
+            setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
                 args.task_name,
                 args.model_id,
-                args.model,
-                args.seq_len,
-                args.pred_len,
+                args.patch_size,
+                args.top_k,
+                args.r,
+                args.lora_alpha,
+                args.lora_dropout,
+                args.gpt_layers,
                 args.d_model,
                 args.n_heads,
                 args.d_layers,
+                args.prompt_length,
+                args.epsilon,
+                args.weight_decay,
+                args.dropout,
                 ii)
 
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
@@ -174,12 +185,15 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
     else:
         ii = 0
-        setting = '{}_{}_{}_seq{}_pred{}_dmodel{}_nheads{}_dlayers{}_ii{}'.format(
+        setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_ii{}'.format(
             args.task_name,
             args.model_id,
-            args.model,
-            args.seq_len,
-            args.pred_len,
+            args.patch_size,
+            args.top_k,
+            args.r,
+            args.lora_alpha,
+            args.lora_dropout,
+            args.gpt_layers,
             args.d_model,
             args.n_heads,
             args.d_layers,

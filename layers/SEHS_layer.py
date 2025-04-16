@@ -13,13 +13,13 @@ class SEHS_layer(nn.Module):
         self.pred_len = pred_len
 
         # 创建 PatchEmbeddingWithPositionalEncoding和SeriesEmbeddingWithPositionalEncoding 实例
-        self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size,                                                                  embed_dim=self.embed_dim, device=self.device)
+        self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size,
+                                                                    embed_dim=self.embed_dim, device=self.device)
         self.series_embed_pos = SeriesEmbeddingWithPositionalEncoding(embed_dim=self.embed_dim, device=self.device)
 
         decoder_layer = nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_layers)
         self.to(self.device)
-
 
     def forward(self, x):
         x = x.to(self.device)
@@ -29,22 +29,19 @@ class SEHS_layer(nn.Module):
             Endogenous = x[:, :, i].unsqueeze(-1)
             Exogenous = torch.cat((x[:, :, :i], x[:, :, i + 1:]), dim=2)
 
-
             Endogenous = self.patch_embed_pos(Endogenous)  # (B, num_patches, embed_dim)
             Exogenous = self.series_embed_pos(Exogenous)  # (B, T, embed_dim)
-
 
             Endogenous = Endogenous.permute(1, 0, 2)
             Exogenous = Exogenous.permute(1, 0, 2)
 
-
             output = self.transformer_decoder(Endogenous, Exogenous)  # (num_patch,B,embed_dim)
-
 
             output = output.permute(1, 0, 2)  # (B,num_patch,embed_dim)
 
             outputs_list.append(output)
         return torch.cat(outputs_list, dim=1)  # (B,num_patch*N,embed_dim)
+
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):
     def __init__(self, patch_size, embed_dim, device):
@@ -54,23 +51,23 @@ class PatchEmbeddingWithPositionalEncoding(nn.Module):
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.device = device
-        self.dropout = nn.Dropout(p=0.2)
+        self.dropout = nn.Dropout(p=0.3)
         self.to(device)
 
     def forward(self, x):
         B, T, C = x.shape
         num_patches = T // self.patch_size
         if self.proj is None:
-            self.proj = nn.Linear(self.patch_size * C, self.embed_dim).to(self.device)  # 线性映射
+            # self.proj = nn.Linear(self.patch_size * C, self.embed_dim).to(self.device)  # 线性映射
+            self.proj = nn.Conv1d(C, self.embed_dim, kernel_size=self.patch_size, stride=self.patch_size,
+                                  device=self.device)
         if self.pos_embed is None:
             self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, self.embed_dim)).to(self.device)  # 可学习的位置编码
-        # 切分时间步为多个 patches
-        x = x.unfold(1, self.patch_size, self.patch_size)
-        x = x.contiguous().view(B, num_patches, self.patch_size * C)
-
+        x = x.permute(0, 2, 1)
         # 通过线性层将每个 patch 映射到嵌入空间
         x = self.proj(x)
         x = self.dropout(x)
+        x = x.permute(0, 2, 1)
         # 添加位置编码
         x = x + self.pos_embed
         return x  # (B, seq_len//patch_size, embed_dim)

@@ -1,25 +1,36 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 seq_len=96
 model=SEHS
 
-for pred_len in 96
+for pred_len in 192
+do
+for promot in 700 800
+do
+for drop in 0.1 0.2 0.3
+do
+for epsilon in 0.1 0.2 0.3
+do
+for decay in 0.1 0.3 0.5
 do
 python run.py \
     --model $model \
     --patch_size 16 \
     --d_layers 1 \
     --top_k 5 \
-    --r 8 \
-    --lora_alpha 16 \
+    --r 4 \
+    --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --prompt_length $promot \
     --num_blocks 3 \
-    --dropout 0.1 \
-    --gpt_layers 6 \
+    --gpt_layers 2 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 256 \
+    --batch_size 32 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss smooth_l1 \
@@ -35,4 +46,7 @@ python run.py \
 
 echo '====================================================================================================================='
 done
-
+done
+done
+done
+done

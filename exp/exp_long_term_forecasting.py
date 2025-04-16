@@ -33,7 +33,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
     def _select_optimizer(self):
 
-        model_optim =optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=0.1)
+        model_optim =optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=self.args.weight_decay)
 
         return model_optim
 
@@ -80,7 +80,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 iter_count += 1
                 model_optim.zero_grad()
 
-                epsilon = 0.2  # 噪声强度
+                epsilon = self.args.epsilon  # 噪声强度
                 data_range=batch_x.max()-batch_x.min()
                 noise = epsilon * (torch.rand_like(batch_x) - 0.5)*data_range
                 batch_x = batch_x + noise
@@ -220,7 +220,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae,rmse,mape,mspe))
-        f = open("result_long_term_forecast.txt", 'a')
+        f = open("result_long_term_forecast_{}.txt".format(self.args.data), 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
         f.write('\n')

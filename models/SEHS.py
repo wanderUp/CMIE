@@ -26,7 +26,7 @@ class Model(nn.Module):
         self.patch_size = configs.patch_size
         self.layers=SEHS_layer(device=device, embed_dim=self.d_model, num_layers=self.num_layers,
                                     num_heads=self.num_heads, patch_size=self.patch_size,pred_len=self.pred_len)
-
+        self.prompt_length = configs.prompt_length
 
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
@@ -46,15 +46,16 @@ class Model(nn.Module):
         self.llm_model = get_peft_model(self.llm_model, peft_config)
 
 
-
-
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model_dim = self.llm_model.config.hidden_size
         head_nf = (self.seq_len // self.patch_size) * self.N
         self.AlignDim = nn.Linear(self.d_model, self.model_dim)
+        self.AlignLen=nn.LazyLinear(1024-configs.prompt_length)
+
         self.output_projection = FlattenHead(head_nf, self.pred_len,
                                              head_dropout=configs.dropout)
-        self.prediction = nn.Linear(self.model_dim, self.N)
+        self.prediction = prediction(configs.pred_len,configs.N)
+        self.dropout = nn.Dropout(configs.dropout)
         self.to(self.device)
 
     def forecast(self, x):
@@ -70,32 +71,37 @@ class Model(nn.Module):
         x_enc = x.permute(0, 2, 1).contiguous().reshape(B * N, T, 1)
         lags = self.calcute_lags(x_enc)
         trends = x_enc.diff(dim=1).sum(dim=1)
-        if self.timesnet is None:
-            self.timesnet=TimesNet(in_channels=N, model_dim=self.d_model).to(self.device)
-        timesnet_output = self.timesnet(x)# (batch, seq_len, model_dim)
-        cycle_features = timesnet_output.mean(dim=1)  # (batch, model_dim)
-        cycle_features_list = cycle_features.tolist()
+        # if self.timesnet is None:
+        #     self.timesnet=TimesNet(in_channels=N, model_dim=self.d_model).to(self.device)
+        # timesnet_output = self.timesnet(x)# (batch, seq_len, model_dim)
+        # cycle_features = timesnet_output.mean(dim=1)  # (batch, model_dim)
+        # cycle_features_list = cycle_features.tolist()
         prompt = []
         for b in range(x.shape[0]):
             lags_values_str = str(lags[b].tolist())
-            cycle_str = ', '.join([f"{v:.4f}" for v in cycle_features_list[b]])
+            # cycle_str = ', '.join([f"{v:.4f}" for v in cycle_features_list[b]])
             prompt_ = (
                 f"<|start_prompt|>Dataset description: {self.description}"
                 f"Task: forecast next {str(self.pred_len)} steps; "
                 "Input statistics: "
-                f"Cycle features: {cycle_str}; "
+                # f"Cycle features: {cycle_str}; "
                 f"trend {'upward' if trends[b] > 0 else 'downward'}, "
                 f"top 5 lags : {lags_values_str}<|<end_prompt>|>"
             )
             prompt.append(prompt_)
 
 
-        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512).input_ids
+        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=self.prompt_length).input_ids
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
         prompt_embeddings=prompt_embeddings.reshape(B , -1, self.model_dim)
 
         x = self.layers(x)
         x=self.AlignDim(x);
+        x=self.dropout(x)
+        x = x.permute(0, 2, 1)
+        x = self.AlignLen(x)
+        x=self.dropout(x)
+        x = x.permute(0, 2, 1)
 
         # prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
         #     query=x,
@@ -104,6 +110,8 @@ class Model(nn.Module):
         # )
 
         prompt_token = prompt_embeddings.shape[1]
+
+
         x=torch.cat((prompt_embeddings,x),dim=1)
 
         dec_out,_ = self.llm_model(inputs_embeds=x)
@@ -112,15 +120,12 @@ class Model(nn.Module):
 
 
 
-        dec_out = dec_out.reshape((B, N, -1, self.model_dim))#(B,N,num_patch,dim)
-        dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim,N,num_patch)
-        dec_out = self.output_projection(dec_out)#(B,dim,pre_len)
-
-        dec_out = dec_out.permute(0, 2, 1).contiguous()
+        # dec_out = dec_out.reshape((B, N, -1, self.model_dim))#(B,N,num_patch,dim)
+        # dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim,N,num_patch)
+        # dec_out = self.output_projection(dec_out)#(B,dim,pre_len)
+        #
+        # dec_out = dec_out.permute(0, 2, 1).contiguous()
         dec_out=self.prediction(dec_out)
-
-
-
         dec_out = x_norm.inverse_transform(dec_out)
         return dec_out
 
@@ -170,4 +175,17 @@ class FlattenHead(nn.Module):
         x = self.flatten(x)
         x = self.linear(x)
         x = self.dropout(x)
+        return x
+
+class prediction(nn.Module):
+    def __init__(self, pre_len,N):
+        super().__init__()
+        self.pre=nn.LazyLinear(pre_len)
+        self.var=nn.LazyLinear(N)
+
+    def forward(self, x):
+        x=self.var(x)
+        x=x.permute(0,2,1)
+        x=self.pre(x)
+        x=x.permute(0,2,1)
         return x

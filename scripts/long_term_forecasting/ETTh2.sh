@@ -1,40 +1,52 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 seq_len=96
-model=CALF
+model=SEHS
 
-for pred_len in 96 192 336 720
+for pred_len in 192
 do
-
+for prompt in 700 800
+do
+for drop in 0.1 0.2 0.3
+do
+for epsilon in 0.1 0.2 0.3
+do
+for decay in 0.1 0.3 0.5
+do
 python run.py \
-    --root_path ./datasets/ETT-small/ \
-    --data_path ETTh2.csv \
-    --is_training 1 \
-    --task_name long_term_forecast \
-    --model_id ETTh2_$model'_'$seq_len'_'$pred_len \
-    --data ETTh2 \
-    --seq_len $seq_len \
-    --label_len 0 \
-    --pred_len $pred_len \
-    --batch_size 256 \
-    --learning_rate 0.0005 \
-    --lradj type1 \
-    --train_epochs 100 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --dropout 0.3 \
-    --enc_in 7 \
-    --c_out 7 \
-    --gpt_layers 6 \
-    --itr 1 \
     --model $model \
-    --tmax 20 \
-    --cos 1 \
-    --r 8 \
+    --patch_size 16 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --patience 5
+    --prompt_length $prompt \
+    --num_blocks 3 \
+    --gpt_layers 1 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 32 \
+    --d_model 768 \
+    --n_heads 1 \
+    --output_loss smooth_l1 \
+    --learning_rate 0.0001 \
+    --itr 1 \
+    --train_epochs 100 \
+    --patience 5 \
+    --data ETTh2 \
+    --model_id ETTh2_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
+    --root_path ./datasets/ETT-small/ \
+    --data_path ETTh2.csv \
 
 echo '====================================================================================================================='
+done
+done
+done
+done
 done
