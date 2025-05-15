@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch.nn.functional as F
 
-class DecoderLayer(nn.Module):
+class decoderLayerWithoutSelfAttention(nn.Module):
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1):
         super().__init__()
         self.cross_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
@@ -35,3 +35,17 @@ class DecoderLayer(nn.Module):
 
         return tgt
 
+
+class encoderLayerWithoutFFN(nn.Module):
+    def __init__(self, embed_size, num_heads):
+        super(encoderLayerWithoutFFN, self).__init__()
+        # 使用 PyTorch 提供的 MultiheadAttention
+        self.self_attn = nn.MultiheadAttention(embed_size, num_heads)
+        self.norm = nn.LayerNorm(embed_size)
+
+    def forward(self, src, src_mask=None):
+        # 自注意力机制
+        attn_output, _ = self.self_attn(src, src, src, attn_mask=src_mask)
+        # 残差连接和层归一化
+        out = self.norm(src + attn_output)
+        return out
