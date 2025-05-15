@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from layers.decoderLayerWithoutSelfAttention import DecoderLayer
 
 class SEHS_layer(nn.Module):
     def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len):
@@ -17,8 +17,9 @@ class SEHS_layer(nn.Module):
                                                                     embed_dim=self.embed_dim, device=self.device)
         self.series_embed_pos = SeriesEmbeddingWithPositionalEncoding(embed_dim=self.embed_dim, device=self.device)
 
-        decoder_layer = nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
-        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_layers)
+
+        self.transformer_decoder=DecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
+
         self.to(self.device)
 
     def forward(self, x):

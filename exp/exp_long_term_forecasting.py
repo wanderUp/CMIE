@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from utils.SEHSLoss import SEHSLoss
@@ -224,6 +226,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
         f.write('\n')
+        # 获取当前时间
+        now = datetime.now()
+        # 格式化输出
+        formatted_time = now.strftime("%Y年%m月%d日 %H:%M")
+        f.write(formatted_time)
         f.write('\n')
         f.close()
 

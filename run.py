@@ -9,7 +9,7 @@ from utils.print_args import print_args
 from utils.tools import load_content
 import random
 import numpy as np
-
+from datetime import datetime
 
 
 if __name__ == '__main__':
@@ -203,3 +203,11 @@ if __name__ == '__main__':
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting, test=1)
         torch.cuda.empty_cache()
+
+
+
+# 获取当前时间
+now = datetime.now()
+# 格式化输出
+formatted_time = now.strftime("%Y年%m月%d日 %H:%M")
+print(formatted_time)

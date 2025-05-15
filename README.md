@@ -1,1 +1,1 @@
-去除了prompt的atten，数据量增大了，但是最终结vali loss最低有0.776
+自己写了一个没有self-attention的transformer decoder模块，最终结果比有att的略好，ETTh1中首次降低至0.4以下
