@@ -17,8 +17,9 @@ class SEHS_layer(nn.Module):
                                                                     embed_dim=self.embed_dim, device=self.device)
         self.series_embed_pos = SeriesEmbeddingWithPositionalEncoding(embed_dim=self.embed_dim, device=self.device)
 
-
-        self.transformer_decoder=decoderLayerWithoutSelfAttention(d_model=self.embed_dim, nhead=self.num_heads)
+        decoderLayer=nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
+        self.transformer_decoder=nn.TransformerDecoder(decoderLayer, num_layers=self.num_layers)
+        #self.transformer_decoder=decoderLayerWithoutSelfAttention(d_model=self.embed_dim, nhead=self.num_heads)
 
         self.to(self.device)
 

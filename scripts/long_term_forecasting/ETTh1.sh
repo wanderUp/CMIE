@@ -1,17 +1,17 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=5
 
 seq_len=96
 model=SEHS
 
 for pred_len in 96
 do
-for promot in 512 700 800
+for promot in  700
 do
-for epsilon in 0.1 0.2 0.3
+for epsilon in 0.3
 do
-for decay in 0.2 0.4 0.5
+for decay in 0.4
 do
-for drop in 0.1 0.2 0.3
+for drop in 0.1
 do
 python run.py \
     --model $model \

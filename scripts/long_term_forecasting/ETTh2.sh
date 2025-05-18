@@ -1,21 +1,21 @@
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 
 seq_len=96
 model=SEHS
 
-for pred_len in 192
+for pred_len in 336
 do
-for prompt in 700 800
-do
-for drop in 0.1 0.2 0.3
+for prompt in 512 700 800
 do
 for epsilon in 0.1 0.2 0.3
 do
 for decay in 0.1 0.3 0.5
 do
+for drop in 0.1 0.2 0.3
+do
 python run.py \
     --model $model \
-    --patch_size 16 \
+    --patch_size 28 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
