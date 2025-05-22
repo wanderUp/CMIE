@@ -1,16 +1,19 @@
 import argparse
-import torch
-from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
-from exp.exp_imputation import Exp_Imputation
-from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
-from exp.exp_anomaly_detection import Exp_Anomaly_Detection
-from exp.exp_classification import Exp_Classification
-from utils.print_args import print_args
-from utils.tools import load_content
 import random
-import numpy as np
 from datetime import datetime
 
+import numpy as np
+import torch
+
+from exp.exp_anomaly_detection import Exp_Anomaly_Detection
+from exp.exp_classification import Exp_Classification
+from exp.exp_few_shot_forecasting import Exp_Few_Shot_Forecast
+from exp.exp_imputation import Exp_Imputation
+from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
+from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
+from exp.exp_zero_shot_forecasting import Exp_Zero_Shot_Forecast
+from utils.print_args import print_args
+from utils.tools import load_content
 
 if __name__ == '__main__':
     fix_seed = 2021
@@ -57,18 +60,18 @@ if __name__ == '__main__':
     parser.add_argument('--lora_alpha', type=int, default=32)
     parser.add_argument('--lora_dropout', type=float, default=0.1)
 
-    parser.add_argument("--epsilon", type=float, default=0.1,help="noise")
-    parser.add_argument("--weight_decay", type=float, default=0.1, help="weight decay")
+    parser.add_argument("--epsilon", type=float, default=0, help="noise")
+    parser.add_argument("--weight_decay", type=float, default=0, help="weight decay")
 
     # model define
-    parser.add_argument("--gpt_layers",type=int,default=6,help="number of GPT layers")
+    parser.add_argument("--gpt_layers", type=int, default=6, help="number of GPT layers")
     parser.add_argument("--prompt_length", type=int, default=512, help="max length of prompt")
     parser.add_argument("--num_blocks", type=int, default=3, help="TimesNet: number of blocks")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
     parser.add_argument("--patch_size", type=int, default=16, help="patch size")
     parser.add_argument('--c_out', type=int, default=7, help='output size')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
-    parser.add_argument("--top_k",type=int,default=5)
+    parser.add_argument("--top_k", type=int, default=5)
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
     parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
@@ -112,7 +115,6 @@ if __name__ == '__main__':
     parser.add_argument('--tmax', type=int, default=20)
     parser.add_argument('--cos', type=int, default=1)
 
-
     # few shot percentage
     parser.add_argument('--percent', type=int, default=100, help='few shot percentage')
 
@@ -132,20 +134,22 @@ if __name__ == '__main__':
     print('Args in experiment:')
     print_args(args)
 
-    args.content=load_content(args)
+    args.content = load_content(args)
     if "ETT" in args.data:
-        args.N=7
+        args.N = 7
     elif "Weather" in args.data:
-        args.N=21
-    elif "traffic" in args.data:
-        args.N=862
-
-
+        args.N = 21
+    elif "Traffic" in args.data:
+        args.N = 862
 
     if args.task_name == 'long_term_forecast':
         Exp = Exp_Long_Term_Forecast
     elif args.task_name == 'short_term_forecast':
         Exp = Exp_Short_Term_Forecast
+    elif args.task_name == 'few_shot_forecast':
+        Exp = Exp_Few_Shot_Forecast
+    elif args.task_name == 'zero_shot_forecast':
+        Exp = Exp_Zero_Shot_Forecast
     elif args.task_name == 'imputation':
         Exp = Exp_Imputation
     elif args.task_name == 'anomaly_detection':
@@ -185,7 +189,7 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
     else:
         ii = 0
-        setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_ii{}'.format(
+        setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
             args.task_name,
             args.model_id,
             args.patch_size,
@@ -197,14 +201,16 @@ if __name__ == '__main__':
             args.d_model,
             args.n_heads,
             args.d_layers,
+            args.prompt_length,
+            args.epsilon,
+            args.weight_decay,
+            args.dropout,
             ii)
 
         exp = Exp(args)  # set experiments
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting, test=1)
         torch.cuda.empty_cache()
-
-
 
 # 获取当前时间
 now = datetime.now()

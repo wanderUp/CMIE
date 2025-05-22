@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
+from utils.SEHSLoss import SEHSLoss
 from utils.cmLoss import cmLoss
 from utils.metrics import metric
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
@@ -45,13 +46,18 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
         return model_optim, loss_optim
 
     def _select_criterion(self):
-        criterion = cmLoss(self.args.feature_loss,
-                           self.args.output_loss,
-                           self.args.task_loss,
-                           self.args.task_name,
-                           self.args.feature_w,
-                           self.args.output_w,
-                           self.args.task_w)
+        if self.args.model == "CALF":
+            criterion = cmLoss(self.args.feature_loss,
+                               self.args.output_loss,
+                               self.args.task_loss,
+                               self.args.task_name,
+                               self.args.feature_w,
+                               self.args.output_w,
+                               self.args.task_w)
+        elif self.args.model == "SEHS":
+            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+        else:
+            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
         return criterion
 
     def train(self, setting):

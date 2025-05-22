@@ -71,20 +71,13 @@ class Model(nn.Module):
         x_enc = x.permute(0, 2, 1).contiguous().reshape(B * N, T, 1)
         lags = self.calcute_lags(x_enc)
         trends = x_enc.diff(dim=1).sum(dim=1)
-        # if self.timesnet is None:
-        #     self.timesnet=TimesNet(in_channels=N, model_dim=self.d_model).to(self.device)
-        # timesnet_output = self.timesnet(x)# (batch, seq_len, model_dim)
-        # cycle_features = timesnet_output.mean(dim=1)  # (batch, model_dim)
-        # cycle_features_list = cycle_features.tolist()
         prompt = []
         for b in range(x.shape[0]):
             lags_values_str = str(lags[b].tolist())
-            # cycle_str = ', '.join([f"{v:.4f}" for v in cycle_features_list[b]])
             prompt_ = (
                 f"<|start_prompt|>Dataset description: {self.description}"
                 f"Task: forecast next {str(self.pred_len)} steps; "
                 "Input statistics: "
-                # f"Cycle features: {cycle_str}; "
                 f"trend {'upward' if trends[b] > 0 else 'downward'}, "
                 f"top 5 lags : {lags_values_str}<|<end_prompt>|>"
             )
@@ -145,12 +138,15 @@ class Model(nn.Module):
     def forward(self, x,mask=None):
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             output = self.forecast(x)
+        if self.task_name=="few_shot_forecast" or self.task_name == "zero_shot_forecast":
+            output = self.forecast(x)
         if self.task_name == 'classification':
             output = self.classification(x)
         if self.task_name == "imputation":
             output = self.imputation(x, mask)
         if self.task_name == "anomaly_detection":
             output = self.anomaly_detection(x)
+
         return output
 
 

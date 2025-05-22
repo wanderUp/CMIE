@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 seq_len=96
 model=SEHS
@@ -6,13 +6,13 @@ model=SEHS
 
 for pred_len in 192
 do
-for prompt in  700
+for prompt in 256 512 700
 do
-for epsilon in 0.3
+for epsilon in 0.1 0.2 0.3
 do
-for decay in 0.4
+for decay in 0.2 0.3 0.5
 do
-for drop in 0.1
+for drop in 0.1 0.2 0.3
 do
 python run.py \
     --root_path ./datasets/weather/ \

@@ -1,39 +1,52 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 seq_len=96
-model=CALF
-
-for pred_len in 96 192 336 720
+model=SEHS
+count=0
+for pred_len in 96
 do
-
+for prompt in 128 256 512
+do
+for epsilon in 0.2 0.3
+do
+for decay in 0.3 0.5
+do
+for drop in 0.3
+do
 python run.py \
     --root_path ./datasets/traffic/ \
     --data_path traffic.csv \
-    --is_training 1 \
-    --task_name long_term_forecast \
-    --model_id traffic_$model'_'$seq_len'_'$pred_len \
-    --data custom \
-    --seq_len $seq_len \
-    --label_len 0 \
-    --pred_len $pred_len \
-    --batch_size 8 \
-    --learning_rate 0.0005 \
-    --train_epochs 10 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --gpt_layer 6 \
-    --itr 1 \
     --model $model \
-    --cos 1 \
-    --tmax 10 \
-    --r 8 \
+    --patch_size 16 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --prompt_length $prompt \
+    --num_blocks 3 \
+    --gpt_layers 2 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 8 \
+    --d_model 768 \
+    --n_heads 4 \
+    --output_loss smooth_l1 \
+    --learning_rate 0.0005 \
+    --itr 1 \
+    --train_epochs 100 \
     --patience 5 \
-    --task_loss smooth_l1 \
-    --feature_loss smooth_l1 \
-    --output_loss smooth_l1
+    --data Traffic \
+    --model_id Traffic_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
 
 echo '====================================================================================================================='
+done
+done
+done
+done
 done

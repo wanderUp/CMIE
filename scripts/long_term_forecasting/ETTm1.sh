@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 seq_len=96
 model=SEHS
 
-for pred_len in 96
+for pred_len in 192
 do
 for prompt in 512 700 800
 do
