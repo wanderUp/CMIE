@@ -2,17 +2,19 @@ import os
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import torch
 
-from sklearn.decomposition import PCA
+import torch.nn as nn
+from layers.SEHS_layer import DataMerge
+from layers.SEHS_layer import PatchEmbeddingWithPositionalEncoding
+N=7
+B=8
+T=32
 
-from transformers.models.gpt2.modeling_gpt2 import GPT2Model
+device = torch.device('cuda:4')
+input=torch.randn(B,T,N).to(device)
 
-model = GPT2Model.from_pretrained('gpt2', output_attentions=True, output_hidden_states=True)
+dataMerge = DataMerge(device=device,seq_len=32,num_heads=4,num_layers=1)
+patchEmbedding=PatchEmbeddingWithPositionalEncoding(patch_size=5,embed_dim=512,device=device)
 
-wte = model.wte.state_dict()['weight'].cpu().numpy()
+output=patchEmbedding(input)
 
-pca = PCA(n_components=500)
-
-wte_pca = pca.fit_transform(wte.T)
-
-torch.save(wte_pca, "wte_pca_500.pt")
-
+print(output.size())

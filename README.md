@@ -1,1 +1,1 @@
-自己写了一个没有self-attention的transformer decoder模块，最终结果比有att的略好，ETTh1中首次降低至0.4以下
+把数据融合单独写成一个模块，可以堆叠多个融合模块，尚未全部完成

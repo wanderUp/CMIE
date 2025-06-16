@@ -4,7 +4,7 @@ seq_len=96
 model=SEHS
 for pred_len in 96
 do
-for target_data in ETTm1
+for target_data in ETTh2
 do
 for prompt in  256 512 700
 do
@@ -28,10 +28,10 @@ python run.py \
     --weight_decay $decay \
     --label_len 0 \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 1 \
     --learning_rate 0.001 \
     --lradj type1 \
-    --train_epochs 5 \
+    --train_epochs 100 \
     --d_model 768 \
     --n_heads 4 \
     --dropout 0.3 \

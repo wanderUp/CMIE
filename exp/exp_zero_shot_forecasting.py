@@ -225,7 +225,7 @@ class Exp_Zero_Shot_Forecast(Exp_Basic):
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae, rmse, mape, mspe))
-        f = open("result_zero_shot_forecast_{}.txt".format(self.args.data), 'a')
+        f = open("result_zero_shot_forecast_{}->{}.txt".format(self.args.data,self.args.target_data), 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
         f.write('\n')
