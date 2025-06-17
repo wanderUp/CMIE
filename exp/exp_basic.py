@@ -1,14 +1,15 @@
-import os
 import torch
+
 from models import CALF
 from models import SEHS
+
 
 class Exp_Basic(object):
     def __init__(self, args):
         self.args = args
         self.model_dict = {
             "CALF": CALF,
-            "SEHS":SEHS,
+            "SEHS": SEHS,
         }
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
@@ -19,8 +20,11 @@ class Exp_Basic(object):
 
     def _acquire_device(self):
         if self.args.use_gpu:
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(
-                self.args.gpu) if not self.args.use_multi_gpu else self.args.devices
+            if self.args.use_multi_gpu:
+                self.args.devices = self.args.devices.replace(' ', '')
+                device_ids = self.args.devices.split(',')
+                self.args.device_ids = [int(id_) for id_ in device_ids]
+                self.args.gpu = self.args.device_ids[0]
             device = torch.device('cuda:{}'.format(self.args.gpu))
             print('Use GPU: cuda:{}'.format(self.args.gpu))
         else:

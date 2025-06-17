@@ -60,27 +60,19 @@ if __name__ == '__main__':
     parser.add_argument('--lora_alpha', type=int, default=32)
     parser.add_argument('--lora_dropout', type=float, default=0.1)
 
+    parser.add_argument('--dropout', type=float, default=0.1, help='dropout')
     parser.add_argument("--epsilon", type=float, default=0, help="noise")
     parser.add_argument("--weight_decay", type=float, default=0, help="weight decay")
 
     # model define
     parser.add_argument("--gpt_layers", type=int, default=6, help="number of GPT layers")
     parser.add_argument("--prompt_length", type=int, default=512, help="max length of prompt")
-    parser.add_argument("--num_blocks", type=int, default=3, help="TimesNet: number of blocks")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
-    parser.add_argument("--patch_size", type=int, default=16, help="patch size")
-    parser.add_argument('--c_out', type=int, default=7, help='output size')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
     parser.add_argument("--top_k", type=int, default=5)
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
-    parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
-    parser.add_argument('--moving_avg', type=int, default=25, help='window size of moving average')
-    parser.add_argument('--factor', type=int, default=1, help='attn factor')
-    parser.add_argument('--distil', action='store_false',
-                        help='whether to use distilling in encoder, using this argument means not using distilling',
-                        default=True)
-    parser.add_argument('--dropout', type=float, default=0.1, help='dropout')
+    parser.add_argument("--merge_layers",type=int, default=1, help='num of dataMerge layers')
     parser.add_argument('--embed', type=str, default='timeF',
                         help='time features encoding, options:[timeF, fixed, learned]')
     parser.add_argument('--activation', type=str, default='gelu', help='activation')
@@ -93,12 +85,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32, help='batch size of train input data')
     parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
-    parser.add_argument('--des', type=str, default='test', help='exp description')
     parser.add_argument('--lradj', type=str, default='type1', help='adjust learning rate')
     parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
-    parser.add_argument('--task_loss', type=str, default='l1', help='task loss function')
-    parser.add_argument('--feature_loss', type=str, default='l1', help='distillation loss function')
-    parser.add_argument('--output_loss', type=str, default='l1', help='logits loss function')
+    parser.add_argument('--output_loss', type=str, default='l1', help='loss function')
 
     # GPU
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
@@ -125,11 +114,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
 
-    if args.use_gpu and args.use_multi_gpu:
-        args.devices = args.devices.replace(' ', '')
-        device_ids = args.devices.split(',')
-        args.device_ids = [int(id_) for id_ in device_ids]
-        args.gpu = args.device_ids[0]
+
 
     print('Args in experiment:')
     print_args(args)
@@ -163,10 +148,9 @@ if __name__ == '__main__':
         for ii in range(args.itr):
             # setting record of experiments
             exp = Exp(args)  # set experiments
-            setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
+            setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
                 args.task_name,
                 args.model_id,
-                args.patch_size,
                 args.top_k,
                 args.r,
                 args.lora_alpha,
@@ -175,6 +159,7 @@ if __name__ == '__main__':
                 args.d_model,
                 args.n_heads,
                 args.d_layers,
+                args.merge_layers,
                 args.prompt_length,
                 args.epsilon,
                 args.weight_decay,
@@ -189,10 +174,9 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
     else:
         ii = 0
-        setting = '{}_{}_patchs{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
+        setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
             args.task_name,
             args.model_id,
-            args.patch_size,
             args.top_k,
             args.r,
             args.lora_alpha,
@@ -201,6 +185,7 @@ if __name__ == '__main__':
             args.d_model,
             args.n_heads,
             args.d_layers,
+            args.merge_layers,
             args.prompt_length,
             args.epsilon,
             args.weight_decay,

@@ -1,20 +1,22 @@
+import os
+import time
+import warnings
 from datetime import datetime
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import optim
+from tqdm import tqdm
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from utils.SEHSLoss import SEHSLoss
-from utils.tools import EarlyStopping, adjust_learning_rate, visual
-from utils.metrics import metric
 from utils.cmLoss import cmLoss
-import torch
-import torch.nn as nn
-from torch import optim
-import os
-import time
-import warnings
-import numpy as np
-import torch.nn.functional as F
-from tqdm import tqdm
+from utils.metrics import metric
+from utils.tools import EarlyStopping, adjust_learning_rate, visual
+
 warnings.filterwarnings('ignore')
 
 
@@ -35,12 +37,13 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
     def _select_optimizer(self):
 
-        model_optim =optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=self.args.weight_decay)
+        model_optim = optim.AdamW(self.model.parameters(), lr=self.args.learning_rate,
+                                  weight_decay=self.args.weight_decay)
 
         return model_optim
 
     def _select_criterion(self):
-        if self.args.model=="CALF":
+        if self.args.model == "CALF":
             criterion = cmLoss(self.args.feature_loss,
                                self.args.output_loss,
                                self.args.task_loss,
@@ -48,9 +51,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                                self.args.feature_w,
                                self.args.output_w,
                                self.args.task_w)
-        elif self.args.model=="SEHS":
-            criterion=SEHSLoss(self.args.task_name,self.args.output_loss)
-        else:criterion=SEHSLoss(self.args.task_name,self.args.output_loss)
+        elif self.args.model == "SEHS":
+            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+        else:
+            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
         return criterion
 
     def train(self, setting):
@@ -67,9 +71,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
-        model_optim= self._select_optimizer()
+        model_optim = self._select_optimizer()
         criterion = self._select_criterion()
-        
+
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(model_optim, T_max=self.args.tmax, eta_min=1e-8)
 
         for epoch in range(self.args.train_epochs):
@@ -78,21 +82,23 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
             self.model.train()
             epoch_time = time.time()
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader),desc="Processing_train{0}".format(iter_count)):
+            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader),
+                                                                          desc="Processing_train{0}".format(
+                                                                                  iter_count)):
                 iter_count += 1
                 model_optim.zero_grad()
 
                 epsilon = self.args.epsilon  # 噪声强度
-                data_range=batch_x.max()-batch_x.min()
-                noise = epsilon * (torch.rand_like(batch_x) - 0.5)*data_range
+                data_range = batch_x.max() - batch_x.min()
+                noise = epsilon * (torch.rand_like(batch_x) - 0.5) * data_range
                 batch_x = batch_x + noise
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
-                
+
                 outputs = self.model(batch_x)
-                
+
                 loss = criterion(outputs, batch_y)
 
                 train_loss.append(loss.item())
@@ -139,12 +145,12 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         iter_count = 0
         self.model.eval()
         with torch.no_grad():
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),desc="Processing_vali{}".format(iter_count)):
+            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),
+                                                                          desc="Processing_vali{}".format(iter_count)):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float()
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
-
 
                 outputs = self.model(batch_x)
 
@@ -159,8 +165,6 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 total_loss.append(loss)
 
         total_loss = np.average(total_loss)
-
-
 
         return total_loss
 
@@ -190,7 +194,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 outputs = self.model(batch_x[:, -self.args.seq_len:, :])
 
                 outputs_ensemble = outputs
-                
+
                 outputs_ensemble = outputs_ensemble[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :]
 
@@ -221,7 +225,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae,rmse,mape,mspe))
+        print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae, rmse, mape, mspe))
         f = open("result_long_term_forecast_{}.txt".format(self.args.data), 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
@@ -234,10 +238,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         f.write('\n')
         f.close()
 
-        f=open(os.path.join('./checkpoints/' + setting, 'result.txt'),'w')
-        f.write('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae,rmse,mape,mspe))
+        f = open(os.path.join('./checkpoints/' + setting, 'result.txt'), 'w')
+        f.write('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae, rmse, mape, mspe))
         f.close()
-
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path + 'pred.npy', preds)

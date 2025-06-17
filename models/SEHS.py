@@ -11,21 +11,15 @@ from utils.tools import StandardScaler
 class Model(nn.Module):
     def __init__(self, configs, device):
         super(Model, self).__init__()
-        self.timesnet = None
-        self.N = configs.N
-        self.device = device
+
         self.description = configs.content
-        self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
-        self.d_model = configs.d_model
-        self.num_heads = configs.n_heads
         self.num_layers = configs.d_layers
         self.top_k = configs.top_k
         self.task_name = configs.task_name
-        self.patch_size = configs.patch_size
-        self.layers = SEHS_layer(device=device, embed_dim=self.d_model, num_layers=self.num_layers,
-                                 num_heads=self.num_heads, patch_size=self.patch_size, pred_len=self.pred_len,
-                                 seq_len=self.seq_len)
+        self.device = device
+        self.layers = SEHS_layer(device=device, embed_dim=configs.d_model, num_layers=self.num_layers,
+                                 num_heads=configs.n_heads, seq_len=configs.seq_len)
         self.prompt_length = configs.prompt_length
 
         peft_config = LoraConfig(
@@ -36,8 +30,10 @@ class Model(nn.Module):
             lora_dropout=configs.lora_dropout,
             target_modules=["c_attn"]
         )
+
+        # loads a pretrained GPT-2 base model
         self.llm_model = AccustumGPT2Model.from_pretrained('gpt2', output_attentions=True,
-                                                           output_hidden_states=True)  # loads a pretrained GPT-2 base model
+                                                           output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.llm_model.h = self.llm_model.h[:configs.gpt_layers]
@@ -47,15 +43,13 @@ class Model(nn.Module):
 
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model_dim = self.llm_model.config.hidden_size
-        head_nf = (self.seq_len // self.patch_size) * self.N
-        self.AlignDim = nn.Linear(self.d_model, self.model_dim)
+
+        self.AlignDim = nn.Linear(configs.d_model, self.model_dim)
         self.AlignLen = nn.LazyLinear(1024 - self.prompt_length)
 
-        self.output_projection = FlattenHead(head_nf, self.pred_len,
-                                             head_dropout=configs.dropout)
         self.prediction = prediction(configs.pred_len, configs.N)
         self.dropout = nn.Dropout(configs.dropout)
-        self.to(self.device)
+        self.to(device)
 
     def forecast(self, x):
         B, T, N = x.shape
@@ -85,7 +79,15 @@ class Model(nn.Module):
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
         prompt_embeddings = prompt_embeddings.reshape(B, -1, self.model_dim)
 
+
+
         x = self.layers(x)
+
+        prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
+            query=x,
+            key=prompt_embeddings,
+            value=prompt_embeddings
+        )
 
         x = self.AlignDim(x)
         x = self.dropout(x)
@@ -94,11 +96,6 @@ class Model(nn.Module):
         x = self.dropout(x)
         x = x.permute(0, 2, 1)
 
-        # prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
-        #     query=x,
-        #     key=prompt_embeddings,
-        #     value=prompt_embeddings
-        # )
 
         prompt_token = prompt_embeddings.shape[1]
 
@@ -108,11 +105,6 @@ class Model(nn.Module):
         prompt_out = dec_out[:, :prompt_token, :]  # (B,prompt_token,dim)
         dec_out = dec_out[:, prompt_token:, :]  # (B,num_patch*N,dim)
 
-        # dec_out = dec_out.reshape((B, N, -1, self.model_dim))#(B,N,num_patch,dim)
-        # dec_out = dec_out.permute(0, 3, 1, 2).contiguous()#(B,dim,N,num_patch)
-        # dec_out = self.output_projection(dec_out)#(B,dim,pre_len)
-        #
-        # dec_out = dec_out.permute(0, 2, 1).contiguous()
         dec_out = self.prediction(dec_out)
         dec_out = x_norm.inverse_transform(dec_out)
         return dec_out
@@ -178,6 +170,5 @@ class prediction(nn.Module):
         x = x.permute(0, 2, 1)
         x = self.var(x)
 
-
-        #x = x.permute(0, 2, 1)
+        # x = x.permute(0, 2, 1)
         return x

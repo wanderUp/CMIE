@@ -29,8 +29,7 @@ def print_args(args):
         print()
 
     print("\033[1m" + "Model Parameters" + "\033[0m")
-    print(f'  {"Moving Avg:":<20}{args.moving_avg:<20}{"Factor:":<20}{args.factor:<20}')
-    print(f'  {"Distil:":<20}{args.distil:<20}{"Dropout:":<20}{args.dropout:<20}')
+    print(f'  {"Dropout:":<20}{args.dropout:<20}')
     print(f'  {"Embed:":<20}{args.embed:<20}{"Activation:":<20}{args.activation:<20}')
     print()
 
@@ -38,7 +37,7 @@ def print_args(args):
     print(f'  {"Num Workers:":<20}{args.num_workers:<20}{"Itr:":<20}{args.itr:<20}')
     print(f'  {"Train Epochs:":<20}{args.train_epochs:<20}{"Batch Size:":<20}{args.batch_size:<20}')
     print(f'  {"Patience:":<20}{args.patience:<20}{"Learning Rate:":<20}{args.learning_rate:<20}')
-    print(f'  {"Des:":<20}{args.des:<20}{"Feature Loss:":<20}{args.feature_loss:<20}{"Output Loss:":<20}{args.output_loss:<20}{"Task Loss:":<20}{args.task_loss:<20}')
+    print(f'  {"Output Loss:":<20}{args.output_loss:<20}')
     print(f'  {"Lradj:":<20}{args.lradj:<20}{"Use Amp:":<20}{args.use_amp:<20}')
     print()
 

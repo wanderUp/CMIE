@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from layers.transformerBlocks import decoderLayerWithoutSelfAttention
+
 
 # class SEHS_layer(nn.Module):
 #     def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len,seq_len):
@@ -46,36 +46,29 @@ from layers.transformerBlocks import decoderLayerWithoutSelfAttention
 
 
 class SEHS_layer(nn.Module):
-    def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len,seq_len):
+    def __init__(self, device, num_layers, num_heads, embed_dim, seq_len):
         super().__init__()
         self.device = device
-        self.num_layers = num_layers
-        self.embed_dim = embed_dim
-        self.patch_size = patch_size
-        self.num_heads = num_heads
-        self.pred_len = pred_len
-        self.seq_len = seq_len
 
-        self.dataMerge=[DataMerge() for i in range(1)]
-        self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size,
-                                                                    embed_dim=self.embed_dim, device=self.device)
+        self.dataMerge = [DataMerge(device=device, seq_len=seq_len, num_heads=num_heads, num_layers=num_layers)
+                          for i in range(1)]
+        self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(embed_dim=embed_dim, device=self.device)
         self.to(self.device)
 
     def forward(self, x):
         x = x.to(self.device)
         for item in self.dataMerge:
             x = item(x)
-        B,T,N=x.shape
-        output=[]
+        B, T, N = x.shape
+        output = []
         for i in range(N):
-            output.append(self.patch_embed_pos(x[:,:,i]))
-        return torch.cat(output,dim=1)  #(B,N,dim)
-
+            output.append(self.patch_embed_pos(x[:, :, i].unsqueeze(-1)))
+        return torch.cat(output, dim=1)  # (B,N,dim)
 
 
 class DataMerge(nn.Module):
-    def __init__(self,device,seq_len,num_heads,num_layers):
-        super(DataMerge,self).__init__()
+    def __init__(self, device, seq_len, num_heads, num_layers):
+        super(DataMerge, self).__init__()
         self.device = device
         self.seq_len = seq_len
         self.num_heads = num_heads
@@ -86,7 +79,8 @@ class DataMerge(nn.Module):
             param.requires_grad = False
 
         self.to(device)
-    def forward(self,x):
+
+    def forward(self, x):
         x = x.to(self.device)
         B, T, N = x.shape
         outputs_list = []
@@ -102,34 +96,28 @@ class DataMerge(nn.Module):
             output = output.permute(1, 2, 0)  # (B,T,1)
 
             outputs_list.append(output)
-        return torch.cat(outputs_list, dim=2)+x  # (B,T,N)
-
+        return torch.cat(outputs_list, dim=2) + x  # (B,T,N)
 
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):
-    def __init__(self, patch_size, embed_dim, device):
+    def __init__(self, embed_dim, device):
         super(PatchEmbeddingWithPositionalEncoding, self).__init__()
-        self.proj = None
-        self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.device = device
+
         self.dropout = nn.Dropout(p=0.3)
+        self.proj = None
         self.to(device)
 
     def forward(self, x):
         B, T, C = x.shape
-        #num_patches = T // self.patch_size
-        num_patches=1
         if self.proj is None:
-            # self.proj = nn.Linear(self.patch_size * C, self.embed_dim).to(self.device)  # 线性映射
-            #self.proj = nn.Conv1d(C, self.embed_dim, kernel_size=self.patch_size, stride=self.patch_size,
-            #                      device=self.device)
-            self.proj=nn.Conv1d(C, self.embed_dim, kernel_size=T, stride=T, device=self.device)
+            self.proj = nn.Conv1d(C, self.embed_dim, kernel_size=T, stride=T, device=self.device)
         x = x.permute(0, 2, 1)
         x = self.proj(x)
         x = self.dropout(x)
         x = x.permute(0, 2, 1)
-        return x  # (B, num_patchs, embed_dim)
+        return x  # (B, num_patches, embed_dim)
 
 
 class SeriesEmbeddingWithPositionalEncoding(nn.Module):
