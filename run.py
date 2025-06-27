@@ -66,7 +66,6 @@ if __name__ == '__main__':
 
     # model define
     parser.add_argument("--gpt_layers", type=int, default=6, help="number of GPT layers")
-    parser.add_argument("--prompt_length", type=int, default=512, help="max length of prompt")
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
     parser.add_argument("--top_k", type=int, default=5)
@@ -126,6 +125,8 @@ if __name__ == '__main__':
         args.N = 21
     elif "Traffic" in args.data:
         args.N = 862
+    elif "ECL" in args.data:
+        args.N = 321
 
     if args.task_name == 'long_term_forecast':
         Exp = Exp_Long_Term_Forecast
@@ -148,7 +149,7 @@ if __name__ == '__main__':
         for ii in range(args.itr):
             # setting record of experiments
             exp = Exp(args)  # set experiments
-            setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
+            setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
                 args.task_name,
                 args.model_id,
                 args.top_k,
@@ -160,7 +161,6 @@ if __name__ == '__main__':
                 args.n_heads,
                 args.d_layers,
                 args.merge_layers,
-                args.prompt_length,
                 args.epsilon,
                 args.weight_decay,
                 args.dropout,
@@ -174,7 +174,7 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
     else:
         ii = 0
-        setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_prompt{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
+        setting = '{}_{}_topk{}_r{}_lora{},{}_gptlayer{}_dmodel{}_nheads{}_dlayers{}_merge{}_epsilon{}_decay{}_dropout{}_ii{}'.format(
             args.task_name,
             args.model_id,
             args.top_k,
@@ -186,7 +186,6 @@ if __name__ == '__main__':
             args.n_heads,
             args.d_layers,
             args.merge_layers,
-            args.prompt_length,
             args.epsilon,
             args.weight_decay,
             args.dropout,

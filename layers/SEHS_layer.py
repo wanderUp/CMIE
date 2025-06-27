@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch import relu
 
 
 # class SEHS_layer(nn.Module):
@@ -46,12 +47,12 @@ import torch.nn as nn
 
 
 class SEHS_layer(nn.Module):
-    def __init__(self, device, num_layers, num_heads, embed_dim, seq_len):
+    def __init__(self, device, num_layers, num_heads, embed_dim, seq_len,merge_layers):
         super().__init__()
         self.device = device
 
         self.dataMerge = [DataMerge(device=device, seq_len=seq_len, num_heads=num_heads, num_layers=num_layers)
-                          for i in range(1)]
+                          for i in range(merge_layers)]
         self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(embed_dim=embed_dim, device=self.device)
         self.to(self.device)
 
@@ -74,6 +75,10 @@ class DataMerge(nn.Module):
         self.num_heads = num_heads
         self.num_layers = num_layers
         decoderLayer = nn.TransformerDecoderLayer(d_model=self.seq_len, nhead=self.num_heads)
+
+        self.linear=nn.LazyLinear(2*seq_len)
+        self.linear2=nn.LazyLinear(seq_len)
+
         self.transformer_decoder = nn.TransformerDecoder(decoderLayer, num_layers=self.num_layers)
         for param in self.transformer_decoder.parameters():
             param.requires_grad = False
@@ -96,7 +101,15 @@ class DataMerge(nn.Module):
             output = output.permute(1, 2, 0)  # (B,T,1)
 
             outputs_list.append(output)
-        return torch.cat(outputs_list, dim=2) + x  # (B,T,N)
+        output= torch.cat(outputs_list, dim=2) + x  # (B,T,N)
+        output=output/output.norm(dim=1, keepdim=True)
+        output = output.permute(0, 2, 1)
+        mid=self.linear(output)
+        mid=relu(mid)
+        output=self.linear2(mid)+output
+        output = output.permute(0, 2, 1)
+        output = output / output.norm(dim=1, keepdim=True)
+        return output
 
 
 class PatchEmbeddingWithPositionalEncoding(nn.Module):

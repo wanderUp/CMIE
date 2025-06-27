@@ -235,7 +235,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         # 格式化输出
         formatted_time = now.strftime("%Y年%m月%d日 %H:%M")
         f.write(formatted_time)
-        f.write('\n')
+        f.write('\n\n')
         f.close()
 
         f = open(os.path.join('./checkpoints/' + setting, 'result.txt'), 'w')

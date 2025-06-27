@@ -13,14 +13,14 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         self.description = configs.content
+        self.N = configs.N
         self.pred_len = configs.pred_len
         self.num_layers = configs.d_layers
         self.top_k = configs.top_k
         self.task_name = configs.task_name
         self.device = device
         self.layers = SEHS_layer(device=device, embed_dim=configs.d_model, num_layers=self.num_layers,
-                                 num_heads=configs.n_heads, seq_len=configs.seq_len)
-        self.prompt_length = configs.prompt_length
+                                 num_heads=configs.n_heads, seq_len=configs.seq_len, merge_layers=configs.merge_layers)
 
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
@@ -45,7 +45,6 @@ class Model(nn.Module):
         self.model_dim = self.llm_model.config.hidden_size
 
         self.AlignDim = nn.Linear(configs.d_model, self.model_dim)
-        self.AlignLen = nn.LazyLinear(1024 - self.prompt_length)
 
         self.prediction = prediction(configs.pred_len, configs.N)
         self.dropout = nn.Dropout(configs.dropout)
@@ -59,45 +58,49 @@ class Model(nn.Module):
         x_norm = StandardScaler(mean, std)
         x = x_norm.transform(x)
 
-        x_enc = x.permute(0, 2, 1).contiguous().reshape(B * N, T, 1)
-        lags = self.calcute_lags(x_enc)
-        trends = x_enc.diff(dim=1).sum(dim=1)
-        prompt = []
-        for b in range(x.shape[0]):
-            lags_values_str = str(lags[b].tolist())
-            prompt_ = (
-                f"<|start_prompt|>Dataset description: {self.description}"
-                f"Task: forecast next {str(self.pred_len)} steps; "
-                "Input statistics: "
-                f"trend {'upward' if trends[b] > 0 else 'downward'}, "
-                f"top 5 lags : {lags_values_str}<|<end_prompt>|>"
-            )
-            prompt.append(prompt_)
+        #x_enc = x.permute(0, 2, 1).contiguous().reshape(B * N, T, 1)
+        #lags = self.calcute_lags(x_enc)
 
-        prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True,
-                                max_length=self.prompt_length).input_ids
-        prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(self.device))  # (batch, prompt_token, dim)
-        prompt_embeddings = prompt_embeddings.reshape(B, -1, self.model_dim)
+        prompts = []
+        # 遍历 N 个变量
+        for i in range(N):
+            xi = x[:, :, i]  # (B, T)
 
+            # 提取统计特征，例如 mean/std/min/max/last 等
+            mean = xi.mean(dim=1)
+            std = xi.std(dim=1)
+            last_val = xi[:, -1]
 
+            # 构造 batch 中每个样本的 prompt（自然语言）
+            for b in range(B):
+                prompt_text = (
+                    "These are some independent variables"
+                    f"Variable {i + 1}: mean={mean[b]:.2f}, std={std[b]:.2f}, last={last_val[b]:.2f}. "
+                    f"Forecast the next {self.pred_len} steps."
+                )
+                prompts.append(prompt_text)
+
+        prompts = [prompts[i * N:(i + 1) * N] for i in range(B)]
+        batch_prompts = [" ".join(batch_prompt) for batch_prompt in prompts]
+
+        # Tokenize & embed
+        tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True,
+                                   max_length=1024).to(self.device)
+        prompt_ids = tokenized.input_ids  # (B, len)
+        prompt_embeds = self.llm_model.get_input_embeddings()(prompt_ids)  # (B, len, dim)
+
+        prompt_token = prompt_embeds.shape[1]
 
         x = self.layers(x)
 
         prompt_embeddings = torch.nn.functional.scaled_dot_product_attention(
-            query=x,
-            key=prompt_embeddings,
-            value=prompt_embeddings
+            query=prompt_embeds,
+            key=x,
+            value=x
         )
 
         x = self.AlignDim(x)
         x = self.dropout(x)
-        x = x.permute(0, 2, 1)
-        x = self.AlignLen(x)
-        x = self.dropout(x)
-        x = x.permute(0, 2, 1)
-
-
-        prompt_token = prompt_embeddings.shape[1]
 
         x = torch.cat((prompt_embeddings, x), dim=1)
 

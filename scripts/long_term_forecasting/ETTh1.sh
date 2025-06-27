@@ -1,11 +1,9 @@
-gpu=3
+gpu=5
 
 seq_len=96
 model=SEHS
 
 for pred_len in 96
-do
-for promot in  512
 do
 for epsilon in 0.3
 do
@@ -21,16 +19,15 @@ python run.py \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --prompt_length $promot \
     --gpt_layers 2 \
-    --merge_layers 1 \
+    --merge_layers 4 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 16 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss mse\
@@ -45,7 +42,6 @@ python run.py \
     --data_path ETTh1.csv \
 
 echo '====================================================================================================================='
-done
 done
 done
 done
