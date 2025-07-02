@@ -85,7 +85,7 @@ class Model(nn.Module):
 
         # Tokenize & embed
         tokenized = self.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True,
-                                   max_length=1024).to(self.device)
+                                   max_length=1024-self.N).to(self.device)
         prompt_ids = tokenized.input_ids  # (B, len)
         prompt_embeds = self.llm_model.get_input_embeddings()(prompt_ids)  # (B, len, dim)
 

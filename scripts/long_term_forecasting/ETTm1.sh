@@ -1,28 +1,30 @@
-gpu=6
+gpu=5
 
 seq_len=96
 model=SEHS
 
-for pred_len in 336
+count=5
+for pred_len in 96
 do
-for prompt in 512
+for epsilon in 0.1 0.2 0.3
 do
-for epsilon in 0.3
+for decay in 0.1 0.2 0.3
 do
-for decay in 0.3
+for drop in 0.1 0.2 0.3
 do
-for drop in 0.1
-do
+if [ $count -gt 0 ]; then
+    ((count--))
+    continue
+fi
 python run.py \
     --gpu $gpu \
     --model $model \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
-    --merge_layers 2 \
+    --merge_layers 1 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --prompt_length $prompt \
     --gpt_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
@@ -30,7 +32,7 @@ python run.py \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 128 \
+    --batch_size 32 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss mse \
@@ -45,7 +47,6 @@ python run.py \
     --data_path ETTm1.csv \
 
 echo '====================================================================================================================='
-done
 done
 done
 done

@@ -1,29 +1,26 @@
-gpu=5
+gpu=3
 
 seq_len=96
 model=SEHS
 for pred_len in 96
 do
-for prompt in 128
+for epsilon in 0.3
 do
-for epsilon in 0.2
+for decay in 0.1
 do
-for decay in 0.3
-do
-for drop in 0.3
+for drop in 0.1
 do
 python run.py \
     --gpu $gpu \
     --root_path ./datasets/traffic/ \
     --data_path traffic.csv \
     --model $model \
-    --merge_layers 1 \
+    --merge_layers 2 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --prompt_length $prompt \
     --gpt_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
@@ -44,7 +41,6 @@ python run.py \
     --task_name long_term_forecast \
 
 echo '====================================================================================================================='
-done
 done
 done
 done

@@ -1,28 +1,31 @@
-export CUDA_VISIBLE_DEVICES=2
+gpu=4
 
 seq_len=96
 model=SEHS
 
-for pred_len in 336
-do
-for prompt in 512 700 800
+count=8
+for pred_len in 96
 do
 for epsilon in 0.1 0.2 0.3
 do
-for decay in 0.1 0.3 0.5
+for decay in 0.1 0.2 0.3
 do
 for drop in 0.1 0.2 0.3
 do
+
+if [ $count -gt 0 ]; then
+  ((count--))
+  continue
+fi
 python run.py \
+    --gpu $gpu \
     --model $model \
-    --patch_size 28 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --prompt_length $prompt \
-    --num_blocks 3 \
+    --merge_layers 1 \
     --gpt_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
@@ -33,7 +36,7 @@ python run.py \
     --batch_size 32 \
     --d_model 768 \
     --n_heads 4 \
-    --output_loss smooth_l1 \
+    --output_loss mse \
     --learning_rate 0.0005 \
     --itr 1 \
     --train_epochs 100 \
