@@ -49,9 +49,9 @@ loss_dict = {
 }
 
 
-class SEHSLoss(nn.Module):
+class CMIELoss(nn.Module):
     def __init__(self, task_name, output_loss):
-        super(SEHSLoss, self).__init__()
+        super(CMIELoss, self).__init__()
 
         self.output_loss = loss_dict[output_loss]
         self.task_name = task_name

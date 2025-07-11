@@ -1,7 +1,7 @@
 from data_provider.data_factory import data_provider
 from data_provider.m4 import M4Meta
 from exp.exp_basic import Exp_Basic
-from utils.SEHSLoss import SEHSLoss
+from utils.CMIELoss import CMIELoss
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 from utils.losses import mape_loss, mase_loss, smape_loss
 from utils.m4_summary import M4Summary
@@ -57,10 +57,10 @@ class Exp_Short_Term_Forecast(Exp_Basic):
                                self.args.feature_w,
                                self.args.output_w,
                                self.args.task_w)
-        elif self.args.model == "SEHS":
-            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+        elif self.args.model == "CMIE":
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
         else:
-            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
         return criterion
     
     def _select_vali_criterion(self, task_loss):

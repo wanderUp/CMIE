@@ -3,7 +3,7 @@ import torch.nn as nn
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import GPT2Tokenizer
 
-from layers.SEHS_layer import SEHS_layer
+from layers.CMIE_layer import CMIE_layer
 from models.GPT2_arch import AccustumGPT2Model
 from utils.tools import StandardScaler
 
@@ -19,7 +19,7 @@ class Model(nn.Module):
         self.top_k = configs.top_k
         self.task_name = configs.task_name
         self.device = device
-        self.layers = SEHS_layer(device=device, embed_dim=configs.d_model, num_layers=self.num_layers,
+        self.layers = CMIE_layer(device=device, embed_dim=configs.d_model, num_layers=self.num_layers,
                                  num_heads=configs.n_heads, seq_len=configs.seq_len, merge_layers=configs.merge_layers)
 
         peft_config = LoraConfig(

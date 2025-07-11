@@ -4,7 +4,7 @@ from torch import relu
 from utils.tools import fig
 
 
-class SEHS_layer(nn.Module):
+class CMIE_layer(nn.Module):
     def __init__(self, device, num_layers, num_heads, embed_dim, seq_len,merge_layers):
         super().__init__()
         self.device = device

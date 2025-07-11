@@ -1,7 +1,7 @@
 import torch
 
 from models import CALF
-from models import SEHS
+from models import CMIE
 
 
 class Exp_Basic(object):
@@ -9,7 +9,7 @@ class Exp_Basic(object):
         self.args = args
         self.model_dict = {
             "CALF": CALF,
-            "SEHS": SEHS,
+            "CMIE": CMIE,
         }
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)

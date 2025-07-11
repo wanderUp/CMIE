@@ -1,7 +1,7 @@
 gpu=6
 
 seq_len=96
-model=SEHS
+model=CMIE
 
 
 for pred_len in 96

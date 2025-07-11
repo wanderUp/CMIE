@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
-from utils.SEHSLoss import SEHSLoss
+from utils.CMIELoss import CMIELoss
 from utils.cmLoss import cmLoss
 from utils.metrics import metric
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
@@ -51,10 +51,10 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
                                self.args.feature_w,
                                self.args.output_w,
                                self.args.task_w)
-        elif self.args.model == "SEHS":
-            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+        elif self.args.model == "CMIE":
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
         else:
-            criterion = SEHSLoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
         return criterion
 
     def train(self, setting):

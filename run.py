@@ -21,15 +21,15 @@ if __name__ == '__main__':
     torch.manual_seed(fix_seed)
     np.random.seed(fix_seed)
 
-    parser = argparse.ArgumentParser(description='SEHS')
+    parser = argparse.ArgumentParser(description='CMIE')
 
     # basic config
     parser.add_argument('--task_name', type=str, required=True, default='long_term_forecast',
                         help='task name, options:[long_term_forecast, short_term_forecast, imputation, classification, anomaly_detection]')
     parser.add_argument('--is_training', type=int, required=True, default=1, help='status')
     parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
-    parser.add_argument('--model', type=str, required=True, default='SEHS',
-                        help='model name, options: [SEHS,CALF]')
+    parser.add_argument('--model', type=str, required=True, default='CMIE',
+                        help='model name, options: [CMIE,CALF]')
 
     # data loader
     parser.add_argument('--root_path', type=str, default='./data/ETT/', help='root path of the data file')

@@ -1,7 +1,7 @@
 gpu=3
 
 seq_len=96
-model=SEHS
+model=CMIE
 for pred_len in 96
 do
 for epsilon in 0.3
