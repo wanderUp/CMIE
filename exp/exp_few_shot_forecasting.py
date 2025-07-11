@@ -1,6 +1,7 @@
 import os
 import time
 import warnings
+from datetime import datetime
 
 import numpy as np
 import torch
@@ -35,15 +36,11 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
-        param_dict = [
-            {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' in n], "lr": 1e-4},
-            {"params": [p for n, p in self.model.named_parameters() if p.requires_grad and '_proj' not in n],
-             "lr": self.args.learning_rate}
-        ]
-        model_optim = optim.Adam([param_dict[1]], lr=self.args.learning_rate)
-        loss_optim = optim.Adam([param_dict[0]], lr=self.args.learning_rate)
 
-        return model_optim, loss_optim
+        model_optim = optim.AdamW(self.model.parameters(), lr=self.args.learning_rate,
+                                  weight_decay=self.args.weight_decay)
+
+        return model_optim
 
     def _select_criterion(self):
         if self.args.model == "CALF":
@@ -74,7 +71,7 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
-        model_optim, loss_optim = self._select_optimizer()
+        model_optim = self._select_optimizer()
         criterion = self._select_criterion()
 
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(model_optim, T_max=self.args.tmax, eta_min=1e-8)
@@ -86,16 +83,23 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
             self.model.train()
             epoch_time = time.time()
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader),
-                                                                          desc="Processing_train{}".format(iter_count)):
+                                                                          desc="Processing_train{0}".format(
+                                                                                  iter_count)):
                 iter_count += 1
                 model_optim.zero_grad()
-                loss_optim.zero_grad()
 
+                epsilon = self.args.epsilon  # 噪声强度
+                data_range = batch_x.max() - batch_x.min()
+                noise = epsilon * (torch.rand_like(batch_x) - 0.5) * data_range
+                batch_x = batch_x + noise
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
-                outputs_dict = self.model(batch_x)
+                batch_x_mark = batch_x_mark.float().to(self.device)
+                batch_y_mark = batch_y_mark.float().to(self.device)
 
-                loss = criterion(outputs_dict, batch_y)
+                outputs = self.model(batch_x)
+
+                loss = criterion(outputs, batch_y)
 
                 train_loss.append(loss.item())
 
@@ -109,7 +113,6 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
 
                 loss.backward()
                 model_optim.step()
-                loss_optim.step()
 
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
@@ -139,26 +142,19 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
-
-        self.model.in_layer.eval()
-        self.model.out_layer.eval()
-        self.model.time_proj.eval()
-        self.model.text_proj.eval()
-
+        iter_count = 0
+        self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader),
-                                                                          desc="Processing_vali{0}"):
+                                                                          desc="Processing_vali{}".format(iter_count)):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float()
-
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
 
                 outputs = self.model(batch_x)
 
-                outputs_ensemble = outputs['outputs_time']
-                # encoder - decoder
-                outputs_ensemble = outputs_ensemble[:, -self.args.pred_len:, :]
+                outputs_ensemble = outputs[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :].to(self.device)
 
                 pred = outputs_ensemble.detach().cpu()
@@ -169,11 +165,6 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
                 total_loss.append(loss)
 
         total_loss = np.average(total_loss)
-
-        self.model.in_layer.train()
-        self.model.out_layer.train()
-        self.model.time_proj.train()
-        self.model.text_proj.train()
 
         return total_loss
 
@@ -199,10 +190,10 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
-
+                batch_x_mark = batch_x_mark.float().to(self.device)
                 outputs = self.model(batch_x[:, -self.args.seq_len:, :])
 
-                outputs_ensemble = outputs['outputs_time']
+                outputs_ensemble = outputs
 
                 outputs_ensemble = outputs_ensemble[:, -self.args.pred_len:, :]
                 batch_y = batch_y[:, -self.args.pred_len:, :]
@@ -234,14 +225,21 @@ class Exp_Few_Shot_Forecast(Exp_Basic):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
-        name = self.args.data_path
-        name = name.split('.')[0]
-        f = open("few_shot_term_forecast_{}.txt".format(name), 'a')
-        f.write(setting + "\n")
+        print('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae, rmse, mape, mspe))
+        f = open("result_few_shot_forecast_{}.txt".format(self.args.data), 'a')
+        f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))
         f.write('\n')
-        f.write('\n')
+        # 获取当前时间
+        now = datetime.now()
+        # 格式化输出
+        formatted_time = now.strftime("%Y年%m月%d日 %H:%M")
+        f.write(formatted_time)
+        f.write('\n\n')
+        f.close()
+
+        f = open(os.path.join('./checkpoints/' + setting, 'result.txt'), 'w')
+        f.write('mse:{}, mae:{},rmse:{},mape:{},mspe:{}'.format(mse, mae, rmse, mape, mspe))
         f.close()
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))

@@ -1,10 +1,10 @@
-gpu=4
+gpu=5
 
 seq_len=96
 model=SEHS
 
-count=8
-for pred_len in 96
+count=0
+for pred_len in 336
 do
 for epsilon in 0.1 0.2 0.3
 do
@@ -25,7 +25,7 @@ python run.py \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --merge_layers 1 \
+    --merge_layers 2 \
     --gpt_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
@@ -48,7 +48,6 @@ python run.py \
     --data_path ETTm2.csv \
 
 echo '====================================================================================================================='
-done
 done
 done
 done

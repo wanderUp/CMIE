@@ -3,8 +3,8 @@ gpu=5
 seq_len=96
 model=SEHS
 
-count=5
-for pred_len in 96
+count=0
+for pred_len in 192
 do
 for epsilon in 0.1 0.2 0.3
 do
@@ -22,7 +22,7 @@ python run.py \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
-    --merge_layers 1 \
+    --merge_layers 3 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
     --gpt_layers 2 \

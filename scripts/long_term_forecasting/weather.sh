@@ -1,4 +1,4 @@
-gpu=3
+gpu=6
 
 seq_len=96
 model=SEHS
@@ -8,7 +8,7 @@ for pred_len in 96
 do
 for epsilon in 0.1 0.2 0.3
 do
-for decay in 0.1 0.2 0.3 0.5
+for decay in 0.1 0.2 0.3
 do
 for drop in 0.1 0.2 0.3
 do
@@ -17,7 +17,7 @@ python run.py \
     --root_path ./datasets/weather/ \
     --data_path weather.csv \
     --model $model \
-    --merge_layers 2 \
+    --merge_layers 3 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \

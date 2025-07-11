@@ -1,4 +1,4 @@
-gpu=6
+gpu=5
 
 seq_len=96
 model=SEHS
@@ -18,16 +18,16 @@ python run.py \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
-    --lora_dropout 0.2 \
-    --merge_layers 3 \
-    --gpt_layers 1 \
+    --lora_dropout 0.1 \
+    --merge_layers 2 \
+    --gpt_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 16 \
+    --batch_size 8 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss mse \

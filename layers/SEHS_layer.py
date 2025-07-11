@@ -1,49 +1,7 @@
 import torch
 import torch.nn as nn
 from torch import relu
-
-
-# class SEHS_layer(nn.Module):
-#     def __init__(self, device, num_layers, patch_size, num_heads, embed_dim, pred_len,seq_len):
-#         super().__init__()
-#         self.device = device
-#         self.num_layers = num_layers
-#         self.embed_dim = embed_dim
-#         self.patch_size = patch_size
-#         self.num_heads = num_heads
-#         self.pred_len = pred_len
-#
-#         # 创建 PatchEmbeddingWithPositionalEncoding和SeriesEmbeddingWithPositionalEncoding 实例
-#         self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(patch_size=self.patch_size,
-#                                                                     embed_dim=self.embed_dim, device=self.device)
-#         self.series_embed_pos = SeriesEmbeddingWithPositionalEncoding(embed_dim=self.embed_dim, device=self.device)
-#
-#         decoderLayer=nn.TransformerDecoderLayer(d_model=self.embed_dim, nhead=self.num_heads)
-#         self.transformer_decoder=nn.TransformerDecoder(decoderLayer, num_layers=self.num_layers)
-#         #self.transformer_decoder=decoderLayerWithoutSelfAttention(d_model=self.embed_dim, nhead=self.num_heads)
-#
-#         self.to(self.device)
-#
-#     def forward(self, x):
-#         x = x.to(self.device)
-#         B, T, N = x.shape;
-#         outputs_list = []
-#         for i in range(N):
-#             Endogenous = x[:, :, i].unsqueeze(-1)
-#             Exogenous = torch.cat((x[:, :, :i], x[:, :, i + 1:]), dim=2)
-#
-#             Endogenous = self.patch_embed_pos(Endogenous)  # (B, num_patches, embed_dim)
-#             Exogenous = self.series_embed_pos(Exogenous)  # (B, T, embed_dim)
-#
-#             Endogenous = Endogenous.permute(1, 0, 2)
-#             Exogenous = Exogenous.permute(1, 0, 2)
-#
-#             output = self.transformer_decoder(Endogenous, Exogenous)  # (num_patch,B,embed_dim)
-#
-#             output = output.permute(1, 0, 2)  # (B,num_patch,embed_dim)
-#
-#             outputs_list.append(output)
-#         return torch.cat(outputs_list, dim=1)  # (B,num_patch*N,embed_dim)
+from utils.tools import fig
 
 
 class SEHS_layer(nn.Module):
@@ -53,7 +11,7 @@ class SEHS_layer(nn.Module):
 
         self.dataMerge = [DataMerge(device=device, seq_len=seq_len, num_heads=num_heads, num_layers=num_layers)
                           for i in range(merge_layers)]
-        self.patch_embed_pos = PatchEmbeddingWithPositionalEncoding(embed_dim=embed_dim, device=self.device)
+        self.patch_embed_pos = convolutionalEmbedding(embed_dim=embed_dim, device=self.device)
         self.to(self.device)
 
     def forward(self, x):
@@ -112,9 +70,9 @@ class DataMerge(nn.Module):
         return output
 
 
-class PatchEmbeddingWithPositionalEncoding(nn.Module):
+class convolutionalEmbedding(nn.Module):
     def __init__(self, embed_dim, device):
-        super(PatchEmbeddingWithPositionalEncoding, self).__init__()
+        super(convolutionalEmbedding, self).__init__()
         self.embed_dim = embed_dim
         self.device = device
 

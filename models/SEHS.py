@@ -129,12 +129,6 @@ class Model(nn.Module):
             output = self.forecast(x)
         if self.task_name == "few_shot_forecast" or self.task_name == "zero_shot_forecast":
             output = self.forecast(x)
-        if self.task_name == 'classification':
-            output = self.classification(x)
-        if self.task_name == "imputation":
-            output = self.imputation(x, mask)
-        if self.task_name == "anomaly_detection":
-            output = self.anomaly_detection(x)
 
         return output
 

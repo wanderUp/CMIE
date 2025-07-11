@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import seaborn as sns
 from datetime import datetime
 from distutils.util import strtobool
 import pandas as pd
@@ -277,3 +277,24 @@ def load_content(args):
     with open('./prompt_bank/{0}.txt'.format(file), 'r') as f:
         content = f.read()
     return content
+
+
+class fig:
+    def __init__(self):
+        self.fig, self.axs = plt.subplots(2, 2, figsize=(18, 6))
+        self.axs=self.axs.flatten()
+        self.datas=[]
+
+    def put(self,data):
+        self.datas.append(data)
+
+    def show(self):
+        for index in range(len(self.datas)):
+            print("index=",index)
+            sns.heatmap(self.datas[index].T, ax=self.axs[index], cmap='viridis')
+            self.axs[index].set_title(index)
+            self.axs[index].set_xlabel('Time Step')
+            self.axs[index].set_ylabel('Channel')
+
+        plt.tight_layout()
+        plt.savefig("pic.png")

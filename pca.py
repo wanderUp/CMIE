@@ -1,47 +1,31 @@
-import os
-
-from transformers import GPT2Tokenizer
-
-from models.GPT2_arch import AccustumGPT2Model
-
-os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-import torch
-import seaborn as sns
 import matplotlib.pyplot as plt
 
-import torch.nn as nn
-from layers.SEHS_layer import DataMerge
-from layers.SEHS_layer import PatchEmbeddingWithPositionalEncoding
+# 数据
+x = [0, 1, 2, 3, 4, 5, 6]  # number of dataMerge block
+y = [0.431, 0.397, 0.384, 0.379, 0.388, 0.394, 0.403]  # MSE
 
-N = 7
-B = 8
-T = 32
+# 创建画布和坐标轴
+plt.figure(figsize=(8, 5))
 
+# 绘制折线图
+plt.plot(x, y,
+         marker='o',         # 数据点标记为圆圈
+         markersize=8,       # 标记大小
+         linestyle='-',      # 实线连接
+         linewidth=2,        # 线宽
+         color='#1f77b4')    # 线条颜色（蓝色）
 
-x = torch.randn((B, T, N))
-original_data=x[0]
+# 设置坐标轴标签和标题
+plt.ylabel('MSE', fontsize=12)
+plt.title('The impact of the number of dataMerge blocks on the MSE', fontsize=14)
 
-fig, axs = plt.subplots(1, 2, figsize=(18, 6))
+# 设置横纵坐标范围
+plt.xlim(-0.5, 6.5)  # 横轴多留一些空白
+plt.ylim(0.37, 0.44)  # 纵轴范围包含所有数据点
 
-# 原始数据
-sns.heatmap(original_data.T, ax=axs[0], cmap='viridis')
-axs[0].set_title('Original Data')
-axs[0].set_xlabel('Time Step')
-axs[0].set_ylabel('Channel')
+# 显示网格线
+plt.grid(True, linestyle='--', alpha=0.6)
 
-fused_data=DataMerge(device="cpu",seq_len=T,num_heads=4,num_layers=1)(x)[0].detach().numpy()
-
-# 融合后数据
-sns.heatmap(fused_data.T, ax=axs[1], cmap='viridis')
-axs[1].set_title('Fused Data')
-axs[1].set_xlabel('Time Step')
-axs[1].set_ylabel('Fused Channel')
-
-plt.tight_layout()
+# 显示图形
+plt.tight_layout()  # 自动调整布局
 plt.show()
-
-
-
-
-
-print()

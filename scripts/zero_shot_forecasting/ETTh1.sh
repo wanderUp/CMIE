@@ -1,18 +1,16 @@
-gpu=6
+gpu=5
 
 seq_len=96
 model=SEHS
 for pred_len in 96
 do
-for target_data in ETTh2
+for target_data in ETTm1
 do
-for prompt in  512
+for epsilon in  0.1 0.2 0.3
 do
-for epsilon in 0.3
+for decay in 0.1 0.2 0.3
 do
-for decay in 0.1
-do
-for drop in 0.1
+for drop in 0.1 0.2 0.3
 do
 python run.py \
     --gpu $gpu \
@@ -25,13 +23,12 @@ python run.py \
     --data ETTh1 \
     --seq_len $seq_len \
     --merge_layers 1 \
-    --prompt_length $prompt \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
     --label_len 0 \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 16 \
     --learning_rate 0.001 \
     --lradj type1 \
     --train_epochs 100 \
@@ -40,15 +37,15 @@ python run.py \
     --gpt_layer 2 \
     --itr 1 \
     --model $model \
+    --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --patience 5 \
+    --patience 10 \
     --zero_shot 1 \
     --target_data $target_data \
 
 echo '====================================================================================================================='
-done
 done
 done
 done
