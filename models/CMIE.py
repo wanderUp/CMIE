@@ -32,7 +32,6 @@ class Model(nn.Module):
     def __init__(self, configs, device):
         super(Model, self).__init__()
 
-        self.description = configs.content
         self.N = configs.N
         self.register_buffer('channel_stats', torch.zeros(self.N, 7))  # 逐通道 [mean,std,min,max,skew,lag1_autocorr,slope]，训练集固定值
         self.register_buffer('patch_assign', torch.full((self.N,), -1, dtype=torch.long))  # 逐通道 patch 归属，-1=未启用

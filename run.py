@@ -13,7 +13,6 @@ from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
 from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
 from exp.exp_zero_shot_forecasting import Exp_Zero_Shot_Forecast
 from utils.print_args import print_args
-from utils.tools import load_content
 
 if __name__ == '__main__':
     fix_seed = 2021
@@ -132,7 +131,6 @@ if __name__ == '__main__':
     print('Args in experiment:')
     print_args(args)
 
-    args.content = load_content(args)
     if "ETT" in args.data:
         args.N = 7
     elif "Weather" in args.data:
