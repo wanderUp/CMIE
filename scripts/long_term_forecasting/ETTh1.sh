@@ -14,12 +14,13 @@ do
 python run.py \
     --gpu $gpu \
     --model $model \
+    --merge_threshold 0.5 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --gpt_layers 3 \
+    --gpt_layers 6 \
     --merge_layers 3 \
     --dropout $drop \
     --epsilon $epsilon \

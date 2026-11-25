@@ -54,7 +54,6 @@ DATA[ECL]="ECL|./datasets/electricity/|electricity.csv"
 DATA[Weather]="Weather|./datasets/weather/|weather.csv"
 DATA[Traffic]="Traffic|./datasets/traffic/|traffic.csv"
 
-# Traffic 通道多(862)，GPT-2 序列=prompt+862 导致 attention 显存大。
 # 单独用小 batch_size 控制显存（24G 上限）；其他数据集用 base_args 默认 32。
 declare -A BATCH
 BATCH[Traffic]=4

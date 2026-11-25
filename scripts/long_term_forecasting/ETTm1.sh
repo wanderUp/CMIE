@@ -19,13 +19,14 @@ fi
 python run.py \
     --gpu $gpu \
     --model $model \
+    --merge_threshold 0.5 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
     --merge_layers 3 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --gpt_layers 2 \
+    --gpt_layers 6 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \

@@ -17,13 +17,14 @@ python run.py \
     --root_path ./datasets/weather/ \
     --data_path weather.csv \
     --model $model \
+    --merge_threshold 0.5 \
     --merge_layers 3 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
-    --gpt_layers 2 \
+    --gpt_layers 6 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \

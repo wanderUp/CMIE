@@ -14,6 +14,8 @@ do
 python run.py \
     --gpu $gpu \
     --model $model \
+    --merge_threshold 0.5 \
+    --gpt_layers 6 \
     --d_layers 2 \
     --is_training 1 \
     --top_k 5 \
