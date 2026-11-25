@@ -34,7 +34,7 @@ python run.py \
     --train_epochs 100 \
     --d_model 768 \
     --n_heads 4 \
-    --gpt_layer 2 \
+    --gpt_layers 2 \
     --itr 1 \
     --model $model \
     --top_k 5 \

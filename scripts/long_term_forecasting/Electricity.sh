@@ -32,7 +32,7 @@ python run.py \
     --output_loss mse \
     --learning_rate 0.0005 \
     --itr 1 \
-    --train_epochs 1 \
+    --train_epochs 100 \
     --patience 5 \
     --data ECL \
     --model_id ECL_$model'_'$seq_len'_'$pred_len \

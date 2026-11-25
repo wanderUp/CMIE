@@ -35,6 +35,19 @@ class Exp_Basic(object):
     def _get_data(self):
         pass
 
+    def _set_channel_stats(self, train_data):
+        model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
+        if hasattr(model, 'set_channel_stats') and getattr(train_data, 'scaler', None) is not None:
+            from utils.tools import channel_stats_from_dataset
+            model.set_channel_stats(channel_stats_from_dataset(train_data))
+
+    def _set_channel_groups(self, train_data):
+        model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
+        if hasattr(model, 'set_channel_groups') and getattr(self.args, 'merge_threshold', 0.0) > 0 \
+                and getattr(train_data, 'data_x', None) is not None:
+            from utils.tools import channel_groups_from_dataset
+            model.set_channel_groups(channel_groups_from_dataset(train_data, self.args.merge_threshold))
+
     def vali(self):
         pass
 

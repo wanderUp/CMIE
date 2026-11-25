@@ -58,9 +58,9 @@ class Exp_Short_Term_Forecast(Exp_Basic):
                                self.args.output_w,
                                self.args.task_w)
         elif self.args.model == "CMIE":
-            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss, self.args.lambda_sim)
         else:
-            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss, self.args.lambda_sim)
         return criterion
     
     def _select_vali_criterion(self, task_loss):

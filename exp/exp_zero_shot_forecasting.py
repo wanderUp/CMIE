@@ -51,13 +51,15 @@ class Exp_Zero_Shot_Forecast(Exp_Basic):
                                self.args.output_w,
                                self.args.task_w)
         elif self.args.model == "CMIE":
-            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss, self.args.lambda_sim)
         else:
-            criterion = CMIELoss(self.args.task_name, self.args.output_loss)
+            criterion = CMIELoss(self.args.task_name, self.args.output_loss, self.args.lambda_sim)
         return criterion
 
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
+        self._set_channel_stats(train_data)
+        self._set_channel_groups(train_data)
         vali_data, vali_loader = self._get_data(flag='val')
         test_data, test_loader = self._get_data(flag='test', vali_test=True)
 
@@ -98,7 +100,7 @@ class Exp_Zero_Shot_Forecast(Exp_Basic):
 
                 outputs = self.model(batch_x)
 
-                loss = criterion(outputs, batch_y)
+                loss = criterion(outputs, batch_y, conv_embeds=self.model.conv_embeds)
 
                 train_loss.append(loss.item())
 

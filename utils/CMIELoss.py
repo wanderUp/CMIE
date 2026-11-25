@@ -50,15 +50,37 @@ loss_dict = {
 
 
 class CMIELoss(nn.Module):
-    def __init__(self, task_name, output_loss):
+    def __init__(self, task_name, output_loss, lambda_sim=0.0):
         super(CMIELoss, self).__init__()
 
         self.output_loss = loss_dict[output_loss]
         self.task_name = task_name
+        self.lambda_sim = lambda_sim
 
-    def forward(self, outputs, batch_y, in_sample=None, freq_map=None, batch_y_mark=None):
+    def _compute_l_sim(self, conv_embeds):
+        """
+        Compute embedding similarity regularization L_sim.
+        conv_embeds: (B, N, D) where N=num_channels, D=embed_dim
+        Paper Eq (8)-(10): L_sim = 2/(C*(C-1)) * sum_{i<j} e_i_tilde^T e_j_tilde
+        """
+        B, N, D = conv_embeds.shape
+        # L2-normalize along embedding dimension
+        e_norm = conv_embeds / (conv_embeds.norm(dim=2, keepdim=True) + 1e-8)
+        # Pairwise cosine similarity: (B, N, N)
+        sim_matrix = torch.bmm(e_norm, e_norm.transpose(1, 2))
+        # Upper triangle (excluding diagonal), average over pairs and batch
+        triu_mask = torch.triu(torch.ones(N, N, device=conv_embeds.device), diagonal=1).bool()
+        pairwise_sim = sim_matrix[:, triu_mask]
+        loss_sim = pairwise_sim.mean()
+        return loss_sim
+
+    def forward(self, outputs, batch_y, conv_embeds=None, in_sample=None, freq_map=None, batch_y_mark=None):
         batch_y = batch_y.to(outputs.device)
 
         loss = self.output_loss(outputs, batch_y)
+
+        if self.lambda_sim > 0 and conv_embeds is not None:
+            loss_sim = self._compute_l_sim(conv_embeds)
+            loss = loss + self.lambda_sim * loss_sim
 
         return loss

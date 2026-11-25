@@ -3,11 +3,11 @@ gpu=6
 seq_len=96
 model=CMIE
 
-for pred_len in 96
+for pred_len in 192
 do
 for epsilon in 0.3
 do
-for decay in 0.1
+for decay in 0
 do
 for drop in 0.1
 do
@@ -24,7 +24,7 @@ python run.py \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
-    --is_training 0 \
+    --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
     --batch_size 16 \

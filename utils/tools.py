@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.colors import Normalize
 from tqdm import tqdm
 import seaborn as sns
 from datetime import datetime
@@ -79,6 +81,102 @@ class StandardScaler():
 
     def inverse_transform(self, data):
         return (data * self.std) + self.mean
+
+
+def channel_stats_from_dataset(dataset):
+    """从训练集提取逐通道全局统计量，shape (N, K)，原始尺度。
+
+    K 列依次为: mean, std, min, max, skew, lag1_autocorr, slope.
+    统计量在训练开始前一次性算好、固定不变（与 batch 无关），
+    供 channel-aware prompt 使用。
+
+    注：dataset.data_x 是标准化后的数据，这里先用 scaler 反变换回原始
+    尺度，使所有统计量（包括新加的 min/max/skew/autocorr/slope）与
+    mean/std 保持同一原始尺度，便于 LLM 理解真实数据分布。
+    """
+    # 原始尺度 mean / std 直接来自训练集拟合的 scaler
+    mean = np.asarray(dataset.scaler.mean_)
+    std = np.asarray(dataset.scaler.scale_)
+    N = mean.shape[0]
+
+    # 反变换回原始尺度，再算高阶统计量
+    X_raw = np.asarray(dataset.data_x, dtype=np.float64) * std + mean  # (T, C)
+
+    stats = np.zeros((N, 7))
+    for i in range(N):
+        x = X_raw[:, i]
+        stats[i, 0] = mean[i]
+        stats[i, 1] = std[i]
+        stats[i, 2] = np.min(x)
+        stats[i, 3] = np.max(x)
+        stats[i, 4] = _skewness(x)
+        stats[i, 5] = _lag1_autocorr(x)
+        stats[i, 6] = _linear_slope(x)
+    return stats
+
+
+def _skewness(x):
+    """偏度 (Fisher-Pearson 标准化矩)。"""
+    x = np.asarray(x, dtype=np.float64)
+    if x.shape[0] < 3:
+        return 0.0
+    m2 = np.mean((x - x.mean()) ** 2)
+    m3 = np.mean((x - x.mean()) ** 3)
+    if m2 <= 0.0:
+        return 0.0
+    return float(m3 / m2 ** 1.5)
+
+
+def _lag1_autocorr(x):
+    """lag-1 自相关系数。"""
+    x = np.asarray(x, dtype=np.float64)
+    if x.shape[0] < 3:
+        return 0.0
+    xm = x - x.mean()
+    var = np.sum(xm * xm)
+    if var <= 0.0:
+        return 0.0
+    return float(np.sum(xm[:-1] * xm[1:]) / var)
+
+
+def _linear_slope(x):
+    """线性趋势斜率（对时间索引归一化，避免量纲依赖）。"""
+    x = np.asarray(x, dtype=np.float64)
+    n = x.shape[0]
+    if n < 2:
+        return 0.0
+    t = np.arange(n, dtype=np.float64)
+    t = t - t.mean()
+    denom = np.sum(t * t)
+    if denom <= 0.0:
+        return 0.0
+    return float(np.sum(t * (x - x.mean())) / denom)
+
+
+def channel_groups_from_dataset(dataset, threshold):
+    """按训练集通道间 |Pearson| 相关做凝聚层次聚类，distance_threshold 自适应簇数 M；
+    返回逐通道 patch 归属 assign (C,) int。threshold ∈ (0,1)，越大簇越少、patch 越大。"""
+    from sklearn.cluster import AgglomerativeClustering
+    X = np.asarray(dataset.data_x)  # (T, C)
+    C = X.shape[1]
+    threshold = float(threshold)
+    if C < 2 or threshold <= 0 or threshold >= 1:
+        return np.arange(C)  # 不分组：每个通道自成一个 patch
+    corr = np.corrcoef(X.T)  # (C, C)
+    sim = np.abs(np.nan_to_num(corr, nan=0.0))
+    dist = 1.0 - sim
+    np.fill_diagonal(dist, 0.0)
+    clustering = AgglomerativeClustering(
+        n_clusters=None,
+        metric='precomputed',
+        linkage='average',
+        distance_threshold=threshold,
+        compute_distances=True,
+    )
+    labels = clustering.fit_predict(dist)
+    if int(labels.max()) + 1 < 2:
+        return np.arange(C)  # 坍缩成 1 簇 → 回退不分组
+    return labels
 
 
 def visual(true, preds=None, name='./pic/test.pdf'):
@@ -298,3 +396,34 @@ class fig:
 
         plt.tight_layout()
         plt.savefig("pic.png")
+
+    def color(self):
+        data = ((self.datas[0] - self.datas[1]) ** 2).mean(dim=0)
+        data=np.array(data.cpu())
+        print(data)
+        norm = Normalize(vmin=np.min(data), vmax=np.max(data))
+        cmap = cm.coolwarm
+        colors = cmap(norm(data))  # shape (len(data), 4)
+
+        # 步骤2：reshape 为 2D (1行N列)，供 imshow 使用
+        colors_2d = colors.reshape(1, -1, 4)
+
+        # 步骤3：画图（细色条 + 插值 + 坐标轴）
+        fig, ax = plt.subplots(figsize=(8, 1.2))  # 图像瘦长一些
+        im = ax.imshow(colors_2d, aspect='auto', interpolation='bicubic')
+
+        # 步骤4：设置横坐标
+        ax.set_xticks(np.arange(len(data)))  # 每个数据点一个刻度
+        ax.set_xticklabels([str(i) for i in range(len(data))], fontsize=8, rotation=0)
+
+        # 步骤5：隐藏纵坐标，只保留横坐标
+        ax.set_yticks([])
+        ax.tick_params(axis='x', bottom=True, labelbottom=True)
+
+        # 步骤6：去除边框
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        plt.tight_layout()
+        plt.savefig("color.png")
+        exit()

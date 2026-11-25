@@ -72,6 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
     parser.add_argument("--merge_layers",type=int, default=1, help='num of dataMerge layers')
+    parser.add_argument('--merge_threshold', type=float, default=0.0, help='distance threshold for adaptive channel patching in ChannelMerge (0 = disable; larger -> fewer patches)')
     parser.add_argument('--embed', type=str, default='timeF',
                         help='time features encoding, options:[timeF, fixed, learned]')
     parser.add_argument('--activation', type=str, default='gelu', help='activation')
@@ -87,17 +88,30 @@ if __name__ == '__main__':
     parser.add_argument('--lradj', type=str, default='type1', help='adjust learning rate')
     parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
     parser.add_argument('--output_loss', type=str, default='l1', help='loss function')
+    parser.add_argument('--lambda_sim', type=float, default=0.1, help='weight for embedding similarity regularization L_sim (default 0.1; set 0 to disable)')
 
     # GPU
-    parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
-    parser.add_argument('--gpu', type=int, default=0, help='gpu')
+    parser.add_argument('--use_gpu', type=int, default=1, help='use gpu (0 or 1)')
+    parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
     parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
+
+    # ablation flags
+    parser.add_argument('--use_ffc', type=int, default=1, help='use full-field convolution (1) or linear embedding (0)')
+    parser.add_argument('--use_channel_aware_prompt', type=int, default=1,
+                        help='use channel-aware prompts (1) or generic prompt (0)')
+    parser.add_argument('--use_llm', type=int, default=1, help='use LLM backbone (1) or bypass (0)')
+    parser.add_argument('--llm_backbone', type=str, default='gpt2', choices=['gpt2', 'transformer'],
+                        help='LLM backbone type (gpt2 or transformer encoder)')
 
     # de-stationary projector params
     parser.add_argument('--p_hidden_dims', type=int, nargs='+', default=[128, 128],
                         help='hidden layer dimensions of projector (List)')
     parser.add_argument('--p_hidden_layers', type=int, default=2, help='number of hidden layers in projector')
+
+    # CALF word embedding
+    parser.add_argument('--word_embedding_path', type=str, default='./word_emb.pt',
+                        help='path to word embedding .pt file for CALF')
 
     # self
     parser.add_argument('--tmax', type=int, default=20)
@@ -127,7 +141,6 @@ if __name__ == '__main__':
         args.N = 862
     elif "ECL" in args.data:
         args.N = 321
-
     if args.task_name == 'long_term_forecast':
         Exp = Exp_Long_Term_Forecast
     elif args.task_name == 'short_term_forecast':
@@ -166,6 +179,15 @@ if __name__ == '__main__':
                 args.dropout,
                 ii)
 
+            # Append ablation suffix
+            ablation_suffix = ""
+            if not args.use_ffc:                ablation_suffix += "_noFFC"
+            if not args.use_channel_aware_prompt: ablation_suffix += "_noCAP"
+            if not args.use_llm:                ablation_suffix += "_noLLM"
+            if args.llm_backbone != 'gpt2':      ablation_suffix += "_transformer"
+            if args.merge_threshold > 0:            ablation_suffix += f"_thr{args.merge_threshold}"
+            setting += ablation_suffix
+
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
 
@@ -190,6 +212,14 @@ if __name__ == '__main__':
             args.weight_decay,
             args.dropout,
             ii)
+
+        ablation_suffix = ""
+        if not args.use_ffc:                ablation_suffix += "_noFFC"
+        if not args.use_channel_aware_prompt: ablation_suffix += "_noCAP"
+        if not args.use_llm:                ablation_suffix += "_noLLM"
+        if args.llm_backbone != 'gpt2':      ablation_suffix += "_transformer"
+        if args.merge_threshold > 0:            ablation_suffix += f"_thr{args.merge_threshold}"
+        setting += ablation_suffix
 
         exp = Exp(args)  # set experiments
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
