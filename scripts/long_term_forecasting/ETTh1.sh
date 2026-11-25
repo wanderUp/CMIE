@@ -3,7 +3,7 @@ gpu=6
 seq_len=96
 model=CMIE
 
-for pred_len in 192
+for pred_len in 96 192 336 720
 do
 for epsilon in 0.3
 do
@@ -21,14 +21,14 @@ python run.py \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
     --gpt_layers 6 \
-    --merge_layers 3 \
+    --merge_layers 1 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 16 \
+    --batch_size 32 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss mse\

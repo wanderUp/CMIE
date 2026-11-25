@@ -4,19 +4,14 @@ seq_len=96
 model=CMIE
 
 count=0
-for pred_len in 336
+for pred_len in 96 192 336 720
 do
 for epsilon in 0.1 0.2 0.3
 do
-for decay in 0.1 0.2 0.3
+for decay in 0
 do
-for drop in 0.1 0.2 0.3
+for drop in 0.1
 do
-
-if [ $count -gt 0 ]; then
-  ((count--))
-  continue
-fi
 python run.py \
     --gpu $gpu \
     --model $model \

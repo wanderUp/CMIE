@@ -2,11 +2,11 @@ gpu=3
 
 seq_len=96
 model=CMIE
-for pred_len in 96
+for pred_len in 96 192 336 720
 do
 for epsilon in 0.3
 do
-for decay in 0.1
+for decay in 0
 do
 for drop in 0.1
 do
@@ -16,7 +16,7 @@ python run.py \
     --data_path traffic.csv \
     --model $model \
     --merge_threshold 0.5 \
-    --merge_layers 2 \
+    --merge_layers 3 \
     --d_layers 1 \
     --top_k 5 \
     --r 4 \
@@ -29,7 +29,7 @@ python run.py \
     --is_training 1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
-    --batch_size 32 \
+    --batch_size 8 \
     --d_model 768 \
     --n_heads 4 \
     --output_loss mse \

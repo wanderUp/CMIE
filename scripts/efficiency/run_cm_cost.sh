@@ -5,7 +5,7 @@
 # 目标：验证 ChannelMerge 引入的计算开销，以及 patch 化（ACP）能否将其
 #       降低到可接受水平，实证 O(C^2) vs O(C*M)。
 #
-# 4 数据集: ETTh2 + ECL + Weather + Traffic  (pred_len=336, batch_size=32, 5 epochs)
+# 4 数据集: ETTh2 + ECL + Weather + Traffic  (pred_len=336, batch_size=32; Traffic=24, 100 epochs)
 # 4 配置:
 #   1. CALF（对照）
 #   2. CMIE 无 ChannelMerge      (--merge_layers 0)
@@ -28,7 +28,7 @@ base_args="\
     --d_model 768 \
     --n_heads 4 \
     --d_layers 1 \
-    --gpt_layers 3 \
+    --gpt_layers 6 \
     --use_ffc 1 \
     --use_channel_aware_prompt 1 \
     --use_llm 1 \
@@ -38,7 +38,7 @@ base_args="\
     --lora_dropout 0.1 \
     --batch_size 32 \
     --learning_rate 0.0005 \
-    --train_epochs 5 \
+    --train_epochs 100 \
     --patience 5 \
     --dropout 0.1 \
     --epsilon 0.3 \
@@ -56,7 +56,7 @@ DATA[Traffic]="Traffic|./datasets/traffic/|traffic.csv"
 
 # 单独用小 batch_size 控制显存（24G 上限）；其他数据集用 base_args 默认 32。
 declare -A BATCH
-BATCH[Traffic]=4
+BATCH[Traffic]=24
 
 # ---------- 1. CALF 对照 ----------
 for ds in ETTh2 ECL Weather Traffic; do

@@ -3,13 +3,13 @@ gpu=3
 seq_len=96
 model=CMIE
 
-for pred_len in 96
+for pred_len in 96 192 336 720
 do
 for epsilon in 0.1 0.2 0.3
 do
-for decay in 0.1 0.2 0.3
+for decay in 0
 do
-for drop in 0.1 0.2 0.3
+for drop in 0.1
 do
 python run.py \
     --gpu $gpu \
@@ -25,7 +25,7 @@ python run.py \
     --weight_decay $decay \
     --r 4 \
     --lora_alpha 32 \
-    --lora_dropout 0.2 \
+    --lora_dropout 0.1 \
     --seq_len $seq_len \
     --pred_len $pred_len \
     --batch_size 16 \

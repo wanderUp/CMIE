@@ -2,13 +2,13 @@ gpu=5
 
 seq_len=96
 model=CMIE
-for pred_len in 96
+for pred_len in 96 192 336 720
 do
-for target_data in ETTm2
+for target_data in ETTm1 ETTm2
 do
 for epsilon in 0.3
 do
-for decay in 0.1
+for decay in 0
 do
 for drop in 0.1
 do
@@ -22,21 +22,23 @@ python run.py \
     --d_layers 1 \
     --data ETTh2 \
     --seq_len $seq_len \
-    --merge_layers 1 \
+    --merge_layers 2 \
     --dropout $drop \
     --epsilon $epsilon \
     --weight_decay $decay \
     --label_len 0 \
     --pred_len $pred_len \
-    --batch_size 16 \
-    --learning_rate 0.001 \
+    --batch_size 32 \
+    --learning_rate 0.0005 \
     --lradj type1 \
     --train_epochs 100 \
     --d_model 768 \
     --n_heads 4 \
-    --gpt_layers 2 \
+    --gpt_layers 6 \
     --itr 1 \
     --model $model \
+    --merge_threshold 0.5 \
+    --output_loss mse \
     --top_k 5 \
     --r 4 \
     --lora_alpha 32 \

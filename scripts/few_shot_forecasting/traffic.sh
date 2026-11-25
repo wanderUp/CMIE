@@ -1,44 +1,49 @@
-export CUDA_VISIBLE_DEVICES=1
+gpu=3
 
 seq_len=96
-model=CALF
-
-for percent in 100
-do
+model=CMIE
 for pred_len in 96 192 336 720
 do
-
-python main.py \
+for epsilon in 0.3
+do
+for decay in 0
+do
+for drop in 0.1
+do
+python run.py \
+    --gpu $gpu \
     --root_path ./datasets/traffic/ \
     --data_path traffic.csv \
-    --model_id traffic_$model'_'$gpt_layer'_'$seq_len'_'$pred_len'_'$percent \
-    --data custom \
-    --seq_len $seq_len \
-    --label_len 48 \
-    --pred_len $pred_len \
-    --batch_size 8 \
-    --learning_rate 0.0005 \
-    --train_epochs 10 \
-    --decay_fac 0.75 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --freq 0 \
-    --patch_size 16 \
-    --stride 8 \
-    --percent $percent \
-    --gpt_layer 6 \
-    --itr 1 \
     --model $model \
-    --cos 1 \
-    --tmax 10 \
-    --is_gpt 1 \
-    --r 8 \
+    --merge_threshold 0.5 \
+    --merge_layers 3 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --gpt_layers 6 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 8 \
+    --d_model 768 \
+    --n_heads 4 \
+    --output_loss mse \
+    --learning_rate 0.0005 \
+    --itr 1 \
+    --train_epochs 100 \
     --patience 5 \
-    --smooth
+    --data Traffic \
+    --model_id Traffic_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
+    --percent 10
 
 echo '====================================================================================================================='
+done
+done
 done
 done

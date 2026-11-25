@@ -1,47 +1,51 @@
-export CUDA_VISIBLE_DEVICES=0
+gpu=6
 
 seq_len=96
-model=CALF
+model=CMIE
 
-for percent in 10
-do
+
 for pred_len in 96 192 336 720
 do
-
+for epsilon in 0.1 0.2 0.3
+do
+for decay in 0
+do
+for drop in 0.1
+do
 python run.py \
+    --gpu $gpu \
     --root_path ./datasets/weather/ \
     --data_path weather.csv \
-    --is_training 1 \
-    --task_name long_term_forecast \
-    --model_id weather_$model'_'$gpt_layer'_'$seq_len'_'$pred_len'_'$percent \
-    --data custom \
-    --seq_len $seq_len \
-    --label_len 0 \
-    --pred_len $pred_len \
-    --batch_size 64 \
-    --learning_rate 0.0001 \
-    --train_epochs 100 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --dropout 0.3 \
-    --enc_in 7 \
-    --c_out 7 \
-    --lradj type3 \
-    --percent $percent \
-    --gpt_layer 6 \
-    --itr 1 \
     --model $model \
-    --r 8 \
+    --merge_threshold 0.5 \
+    --merge_layers 1 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --gpt_layers 6 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 32 \
+    --d_model 768 \
+    --n_heads 4 \
+    --output_loss mse \
+    --learning_rate 0.0005 \
+    --itr 1 \
+    --train_epochs 100 \
     --patience 5 \
-    --task_loss smooth_l1 \
-    --output_loss smooth_l1 \
-    --feature_loss smooth_l1 \
-    --feature_w 0 \
-    --output_w 0 \
+    --data Weather \
+    --model_id Weather_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
+    --percent 10
 
 echo '====================================================================================================================='
+done
+done
 done
 done

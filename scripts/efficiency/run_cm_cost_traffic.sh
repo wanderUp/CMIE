@@ -18,7 +18,7 @@ common_args="\
     --d_model 768 \
     --n_heads 4 \
     --d_layers 1 \
-    --gpt_layers 3 \
+    --gpt_layers 6 \
     --use_ffc 1 \
     --use_channel_aware_prompt 1 \
     --use_llm 1 \
@@ -28,7 +28,7 @@ common_args="\
     --lora_dropout 0.1 \
     --batch_size 24 \
     --learning_rate 0.0005 \
-    --train_epochs 5 \
+    --train_epochs 100 \
     --patience 5 \
     --dropout 0.1 \
     --epsilon 0.3 \

@@ -1,48 +1,51 @@
-export CUDA_VISIBLE_DEVICES=7
+gpu=5
 
 seq_len=96
-model=CALF
+model=CMIE
 
-percent=10
-
-for gpt_layer in 6
-do
+count=0
 for pred_len in 96 192 336 720
 do
-
+for epsilon in 0.1 0.2 0.3
+do
+for decay in 0
+do
+for drop in 0.1
+do
 python run.py \
-    --root_path ./datasets/ETT-small/ \
-    --data_path ETTm2.csv \
-    --is_training 1 \
-    --task_name long_term_forecast \
-    --model_id ETTm2_$model'_'$gpt_layer'_'$seq_len'_'$pred_len'_'$percent \
-    --data ETTm2 \
-    --seq_len $seq_len \
-    --label_len 0 \
-    --pred_len $pred_len \
-    --batch_size 256 \
-    --learning_rate 0.0001 \
-    --lradj type1 \
-    --train_epochs 100 \
-    --d_model 768 \
-    --n_heads 4 \
-    --d_ff 768 \
-    --dropout 0.3 \
-    --enc_in 7 \
-    --c_out 7 \
-    --percent $percent \
-    --gpt_layer $gpt_layer \
-    --itr 1 \
+    --gpu $gpu \
     --model $model \
-    --cos 1 \
-    --tmax 20 \
-    --r 8 \
+    --merge_threshold 0.5 \
+    --d_layers 1 \
+    --top_k 5 \
+    --r 4 \
     --lora_alpha 32 \
     --lora_dropout 0.1 \
+    --merge_layers 2 \
+    --gpt_layers 6 \
+    --dropout $drop \
+    --epsilon $epsilon \
+    --weight_decay $decay \
+    --is_training 1 \
+    --seq_len $seq_len \
+    --pred_len $pred_len \
+    --batch_size 32 \
+    --d_model 768 \
+    --n_heads 4 \
+    --output_loss mse \
+    --learning_rate 0.0005 \
+    --itr 1 \
+    --train_epochs 100 \
     --patience 5 \
-    --feature_w 0 \
-    --output_w 0
+    --data ETTm2 \
+    --model_id ETTm2_$model'_'$seq_len'_'$pred_len \
+    --task_name long_term_forecast \
+    --root_path ./datasets/ETT-small/ \
+    --data_path ETTm2.csv \
+    --percent 10
 
 echo '====================================================================================================================='
+done
+done
 done
 done
